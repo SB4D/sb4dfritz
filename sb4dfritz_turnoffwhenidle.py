@@ -4,7 +4,7 @@ Repeatedly checks whether the connected devices are idle and only turns off in
 that case. 
 """
 __author__      = "Stefan Behrens"
-__version__     = "0.1"
+__version__     = "0.2"
 
 import fritzconnection
 from fritzconnection import FritzConnection
@@ -183,20 +183,20 @@ class SmartSwitch():
         return power_record
 
 
-    def turn_off_if_idle(self,power_record,allowed_latency=2.5):
+    def turn_off_if_idle(self,power_record,latency_threshold=2.5):
         """Check if the switch was reported idle with an acceptable latency, and if so, 
         turn it off.
         
         Arguments:
         - power_record: a power record as returned by .get_latest_power_record()
-        - allowed_latency: maximal latency considered to be reliable
+        - latency_threshold: maximal latency considered to be reliable
         Returns:
         - boolean indicating the final switch state (True indicates that)
         """
         # compare the power record to the idle threshold
         device_idle = power_record['power'] < self.idle_threshold
         # check the latency against 
-        latency_ok = 0 < power_record['latency'] < allowed_latency
+        latency_ok = 0 <= power_record['latency'] < latency_threshold
         # act accordingly
         if device_idle and latency_ok:
             self.set_switch(False)
@@ -204,7 +204,7 @@ class SmartSwitch():
         else:
             return True
         
-    def turn_off_when_idle(self, allowed_latency:float=1, cycle_detection_precision:int=2, silent:bool = True) -> None:
+    def turn_off_when_idle(self, ideal_latency:float=0.5, cycle_detection_precision:int=1, silent:bool = True) -> None:
         """Turns the switch off only when a power record with acceptable latency
         indicates idle state. 
 
@@ -213,7 +213,7 @@ class SmartSwitch():
         with the specified precision using a divide and conquer strategy.
 
         Arguments:
-        - allowed_latency: sets the maximal allowed latency in seconds (default: 1)
+        - ideal_latency: sets the ideal latency in seconds (default = 0.5)
         - cycle_detection_precision: determines the precision of the approximation
         as 10**(-cycle_detection_precision)
         - silent: controls if status updates are given as console output
@@ -234,7 +234,8 @@ class SmartSwitch():
             if initial:
                 status_string = f"Power: {power:12} Latency: {latency:10}"
             else:
-                status_string = f"Power: {power:12} Latency: {latency:10} (Current Precision: {increment:0.{cycle_detection_precision}f} s)"
+                status_string = f"Power: {power:12} Latency: {latency:10}"
+                # status_string = f"Power: {power:12} Latency: {latency:10} (Increment: +/-{increment:0.3f} s, Offset: {offset:0.6f} s, Lower Bound: {lower_bound:0.6f} s, Minimal Latency: {minimal_latency:0.6f}, Threshold: {latency_threshold:0.6f} s)"
             _status_update(status_string)
         def _power_off_update(switch_is_on:bool)->None:
             """Power off notification."""
@@ -249,22 +250,25 @@ class SmartSwitch():
             _status_update(f"{self.DeviceName} is already off.")
             return
         # get first reliable power record
-        _status_update("REQUESTING INITIAL POWER RECORD...".title()) 
+        _status_update("Requesting current power data...") 
+
         power_record = self.get_reliable_power_record()
         _power_update(power_record, initial=True)
         # check if switch is idle with near optimal latency
-        switch_is_on = self.turn_off_if_idle(power_record,allowed_latency=0.5)
+        switch_is_on = self.turn_off_if_idle(power_record,latency_threshold=ideal_latency)
         _power_off_update(switch_is_on)
 
         # start detection loop
         # set initial base time of detection loop to latest power record time
         base_time = power_record['record time']
         # initialize parameters to adjust base time for detection
+        latency_threshold = ideal_latency
+        minimal_latency = power_record['latency']
         offset = 0
         lower_bound = -1
         increment = 1/4
-        precision_is_low = increment > 10**(-cycle_detection_precision)
-        _status_update("STARTING MAIN LOOP...".title())
+        precision_is_low = (increment > 10**(-cycle_detection_precision))
+        _status_update("Optimizing latency...")
         while switch_is_on:
             # get next power record
             power_record = self.get_next_power_record(base_time)
@@ -272,26 +276,32 @@ class SmartSwitch():
             # extract information
             record_time = power_record['record time']
             latency = power_record['latency']
+            if 0 <= latency < minimal_latency:
+                minimal_latency = latency
             # check if switch is reported idle with allowed latency, if so, turn off
-            switch_is_on = self.turn_off_if_idle(power_record,allowed_latency)
+            switch_is_on = self.turn_off_if_idle(power_record,latency_threshold)
             _power_off_update(switch_is_on)
             # adjust parameters if needed
             # at this point the latency should be between 0 and 12.5 seconds
             # latency 10 or higher indicates that the request was sent too soon
-            if 9 < latency < 12.5:
+            if 9 < latency < 12.5 or 0 > latency > -0.5:
                 # adjust offset and its lower bound accordingly
                 lower_bound = max([offset,lower_bound])
                 offset += increment
             # in case of reasonably low latency, keep the lower bound, and reduce
             # the offset. 
             elif 0 < latency < 2.5:
-                precision_can_be_increased = offset - increment == lower_bound
+                precision_can_be_increased = ((offset - increment) == lower_bound)
+                precision_is_low = (increment > 10**(-cycle_detection_precision))
                 if precision_is_low and precision_can_be_increased:
                     increment /= 2
-                offset -= increment
+                if (offset - increment) > lower_bound:
+                    offset -= increment
             # in all other cases, something went wrong and the offset is reset to 0
             else:
                 offset = 0
+            if not precision_is_low:
+                latency_threshold = minimal_latency + 0.25
             # update the base time of the detection cycle
             base_time = nudge_timestamp(record_time,seconds=offset)
 
@@ -351,8 +361,8 @@ def runFromCommandLine(width=80):
     print("-"*width)
     # turn off when idle
     switch.turn_off_when_idle(
-        allowed_latency=1, 
-        cycle_detection_precision=3,
+        # latency_threshold=1, 
+        # cycle_detection_precision=3,
         silent=False, 
     )
     print("="*width)
