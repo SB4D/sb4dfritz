@@ -393,7 +393,6 @@ class SmartPlug():
         print("-"*80)
         return power_log
 
-
 ##  SOME HELPER FUNCTIONS  ##
 
 def nudge_timestamp(timestamp,seconds):
