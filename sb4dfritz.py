@@ -304,9 +304,9 @@ class SmartPlug():
             base_time = nudge_timestamp(record_time,seconds=offset)
 
     def turn_off_when_idle_low_latency(self, cycle_detection_precision=0.1, idle_cycles_required=2):
-        print("-"*50)
+        print("-"*80)
         print("Optimizing latency for power value readouts...")
-        print("-"*50)
+        print("-"*80)
         # initialize utility variables
         iterations = -1
         power_log = []
@@ -357,9 +357,9 @@ class SmartPlug():
                 offset = (min(good_offsets) + max(bad_offsets)) / 2
             else:
                 offset = min(good_offsets)
-        print("-"*50)
+        print("-"*80)
         print("Latency optimized. Switching off if devices are idle...")
-        print("-"*50)
+        print("-"*80)
         request_cycle_base_time = nudge_timestamp(measure_cycle_base_time,offset)
         idle_count = 0
         ### SECOND LOOP - turn off when idle ###
@@ -388,9 +388,9 @@ class SmartPlug():
             if idle_count == idle_cycles_required:
                 self.set_switch(False)
                 break
-        print("-"*50)
+        print("-"*80)
         print(f"{self.DeviceName} was switched off.")
-        print("-"*50)
+        print("-"*80)
         return power_log
 
 
