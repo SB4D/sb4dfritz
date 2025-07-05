@@ -349,7 +349,7 @@ class SmartPlug():
             good_offsets = set([t for t in good_offsets if t > max(bad_offsets)])
             # print(f"Base Time: {request_cycle_base_time} | Response: {response_time} | Record: {record_time} | Latency: {latency:5.2f} | Offset: {offset:6.3f}")
             # print(f"    bad offsets -> {sorted(bad_offsets)}, {sorted(good_offsets)} <- good offsets")
-            print(f"({iterations}) Power: {power:7.2f} W | Latency: {latency:5.2f} s | Offset: {offset:6.3f} s | Duration: {duration:4.2f} s")
+            print(f"({iterations}) Power: {power:7.2f} W | Latency: {latency:5.2f} s | Response Time: {duration:4.2f} s | Offset: {offset:6.3f} s")
             # update offset
             offset_gap = min(good_offsets) - max(bad_offsets)
             assert offset_gap > 0, "Negative gap!"
@@ -375,7 +375,11 @@ class SmartPlug():
             # extract information for concole output
             power = power_record['power']
             latency = power_record['latency']
-            print(f"({iterations}) Power: {power:7.2f} W | Latency: {latency:5.2f} s | Offset: {offset:6.3f} s | Duration: {duration:4.2f} s")
+            # adjust offset if needed
+            if latency > 10:
+                offset += cycle_detection_precision
+                request_cycle_base_time = nudge_timestamp(measure_cycle_base_time,offset)
+            print(f"({iterations}) Power: {power:7.2f} W | Latency: {latency:5.2f} s | Response Time: {duration:4.2f} s | Offset: {offset:6.3f} s")
             # count idle cycles and turn off if requirement is met
             if power < self.idle_threshold and 0 <= latency < 5:
                 idle_count += 1
