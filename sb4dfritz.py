@@ -68,7 +68,7 @@ class SmartPlug():
     def __init__(self,fritzdevice,idle_threshold=5):
         # private attribute containing a HomeAutomationDevice() instance
         self.__device = fritzdevice
-        # some attributes inherited from the HomeAutomationDevice() instance
+        # some attributes borrowed from the HomeAutomationDevice() instance
         self.identifier = self.__device.identifier
         self.DeviceName = self.__device.DeviceName
         self.model = f"{self.__device.Manufacturer} {self.__device.ProductName}"
@@ -423,6 +423,6 @@ if __name__ == "__main__":
     plugs = fritzbox.getSmartPlugs()
     print("The following smart plugs were detected:")
     for plug in plugs:
-        print(plug.DeviceName)
+        print(plug)
     # plugs[0].turn_off_when_idle_low_latency()
     
