@@ -146,12 +146,12 @@ class MeasurementSimulator():
             old_data = device_stats[cat]['data']
             old_datatime = device_stats[cat]['datatime']
             grid = device_stats[cat]['grid']
+            grid_delta = timedelta(seconds=grid)
             # update datatime
             new_datatime = old_datatime
             cycles_passed = 0
-            while new_datatime <= current_time:
+            while new_datatime + grid_delta <= current_time:
                 cycles_passed += 1
-                grid_delta = timedelta(seconds=grid)
                 new_datatime += grid_delta
             device_stats[cat]['datatime'] = new_datatime.replace(microsecond=0)
             # add new data values
