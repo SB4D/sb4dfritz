@@ -344,12 +344,12 @@ class SmartPlug():
             if iterations > 0 and latency >= 10:
                 bad_offsets.add(offset)
             if iterations > 0 and 0 <= latency < 10:
-                good_offsets.add(offset + cycle_detection_precision)
+                good_offsets.add(offset + cycle_detection_precision / 2)
             # good_offsets.difference_update(bad_offsets)
             good_offsets = set([t for t in good_offsets if t > max(bad_offsets)])
             # print(f"Base Time: {request_cycle_base_time} | Response: {response_time} | Record: {record_time} | Latency: {latency:5.2f} | Offset: {offset:6.3f}")
             # print(f"    bad offsets -> {sorted(bad_offsets)}, {sorted(good_offsets)} <- good offsets")
-            print(f"({iterations}) Power: {power:7.2f} W | Latency: {latency:5.2f} s | Response Time: {duration:4.2f} s | Offset: {offset:6.3f} s")
+            print(f"({iterations}) Power: {power:7.2f} W | Latency: {latency:5.2f} s | Response Time: {duration:4.2f} s | Offset: {offset:6.3f} s | Gap: {offset_gap:6.3f}")
             # update offset
             offset_gap = min(good_offsets) - max(bad_offsets)
             assert offset_gap > 0, "Negative gap!"
