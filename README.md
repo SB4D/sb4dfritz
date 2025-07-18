@@ -1,5 +1,5 @@
 # sb4dfritz
-This project is mainly an exercise an object oriented programming in Python, but it also has real life applications. It provides customized functionality for a smart plug in my home automation setup. 
+This project is mainly an exercise an object oriented programming in Python, but it does have a real life application: it provides customized functionality for a smart plug in my home automation setup. 
 
 * For a (virtual) demonstration, please run the script `sb4dfritz_demo.py`.
 * The main features are provided in `sb4dfritz.py` building on the `fritzconnection` API.
