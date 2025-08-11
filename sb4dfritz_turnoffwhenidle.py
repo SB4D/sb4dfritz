@@ -46,7 +46,7 @@ def run_normal_mode():
     print("="*WIDTH)
     print("")
 
-def run_optimized_mode():
+def run_optimized_mode(save_log=False):
     # Print intro
     print("")
     print("="*WIDTH)
@@ -77,7 +77,7 @@ def run_optimized_mode():
     print(f'Switching off "{plug.DeviceName}" when the connected devices are idle...')
     print("-"*WIDTH)
     # turn off when idle
-    plug.turn_off_when_idle_low_latency()
+    plug.turn_off_when_idle_low_latency(save_log=save_log)
     print("="*WIDTH)
     print("")
 
@@ -105,11 +105,14 @@ if __name__ == "__main__":
     group = parser.add_mutually_exclusive_group()
     group.add_argument("-normal", action="store_true", help="Run in normal mode (default)")
     group.add_argument("-optimized", action="store_true", help="Run with low latency")
+    group.add_argument("-optimized_log", action="store_true", help="Run with low latency and log")
 
     args = parser.parse_args()
 
     # Default behavior
     if args.optimized:
         run_optimized_mode()
+    elif args.optimized_log:
+        run_optimized_mode(save_log=True)
     else:
         run_normal_mode()  # Default to function1 if no option is given
