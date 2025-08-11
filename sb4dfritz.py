@@ -3,7 +3,7 @@ Provide some specialized functionality for AVM FRITZ! smart home devices.
 Built on top of the `fritzconnection` API for .
 """
 __author__      = "Stefan Behrens"
-__version__     = "0.3"
+__version__     = "0.3.1"
 
 import fritzconnection
 from fritzconnection import FritzConnection
@@ -11,6 +11,8 @@ from fritzconnection.lib.fritzhomeauto import FritzHomeAutomation
 import datetime
 import time
 import json
+import csv
+import os
 
 # Location of config file. Replace with your own. 
 CONFIG_FILE = "..\\..\\_private_files\\sb4dfritz_access.ini"
@@ -123,11 +125,11 @@ class SmartPlug():
         latency = (response_time - record_time).total_seconds()
         # Package the information in dictionary and return
         data = {
-            'power' : power,
-            'record time' : record_time,
             'request time' : request_time,
             'response time' : response_time,
             'duration' : duration,
+            'record time' : record_time,
+            'power' : power,
             'latency' : latency,
         }
         return data
@@ -303,7 +305,23 @@ class SmartPlug():
             # update the base time of the detection cycle
             base_time = nudge_timestamp(record_time,seconds=offset)
 
-    def turn_off_when_idle_low_latency(self, cycle_detection_precision=0.1, idle_cycles_required=2):
+    def turn_off_when_idle_low_latency(self, cycle_detection_precision=0.1, idle_cycles_required=2, save_log=False):
+        def update_log_file(power_record):
+            power_log = [power_record]
+            # make sure 'logs' subdirectory exists
+            os.makedirs('logs', exist_ok=True)
+            # parse log file name
+            yyyymm = datetime.datetime.now().strftime("%Y-%m")
+            log_file = f'logs/sb4dfritz_turnoffwhenidle_log_{yyyymm}.csv'
+            # check if log_file doesn't exists; if not, write csv header
+            file_exists = os.path.isfile(log_file)
+            csv_cols = power_log[0].keys()
+            with open(log_file, 'a', newline='', encoding='utf-8') as csvfile:
+                writer = csv.DictWriter(csvfile, fieldnames=csv_cols)
+                if not file_exists:
+                    writer.writeheader()
+                # Write data rows
+                writer.writerows(power_log)
         print("-"*80)
         print("Optimizing latency for power value readouts...")
         print("-"*80)
@@ -330,7 +348,11 @@ class SmartPlug():
             # update log 
             power_record['base time'] = request_cycle_base_time
             power_record['offset'] = offset
+            power_record['device'] = self.DeviceName
             power_log.append(power_record)
+            # save log to 'logs/sb4dfritz_turnoffwhenidle_log_YYYY-MM.csv'
+            if save_log:
+                update_log_file(power_record)
             # extract time parameters for console output
             request_time = power_record['request time']
             response_time = power_record['response time']
@@ -371,7 +393,11 @@ class SmartPlug():
             # update power log
             power_record['base time'] = request_cycle_base_time
             power_record['offset'] = offset
+            power_record['device'] = self.DeviceName
             power_log.append(power_record)
+            # save log to 'logs/sb4dfritz_turnoffwhenidle_log_YYYY-MM.csv'
+            if save_log:
+                update_log_file(power_record)
             # extract information for concole output
             power = power_record['power']
             latency = power_record['latency']
@@ -424,5 +450,25 @@ if __name__ == "__main__":
     print("The following smart plugs were detected:")
     for plug in plugs:
         print(plug)
-    # plugs[0].turn_off_when_idle_low_latency()
+    
+    plugs[1].turn_off_when_idle_low_latency(save_log=True)
+
+    
+
+
+    # # Write to CSV file
+    # power_log = [plugs[0].get_latest_power_record()]
+    # yyyymm = datetime.datetime.now().strftime("%Y-%m")
+    # os.makedirs('logs', exist_ok=True)
+    # log_file = f'logs/log_test_{yyyymm}.csv'
+    # # check if log_file doesn't exists; if not, write csv header
+    # file_exists = os.path.isfile(log_file)
+    # csv_cols = power_log[0].keys()
+    # with open(log_file, 'a', newline='') as csvfile:
+    #     writer = csv.DictWriter(csvfile, fieldnames=csv_cols)
+    #     if not file_exists:
+    #         writer.writeheader()
+    #     # Write data rows
+    #     writer.writerows(power_log)
+
     
