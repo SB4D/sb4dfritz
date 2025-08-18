@@ -26,12 +26,16 @@ if __name__ == "__main__":
     params = {
         # 'ain': ain.replace("", " "),
         'ain': TV,
-        'switchcmd': 'getbasicdevicestats',
+        'switchcmd': 'getswitchpower',
         'sid': sid
     }
-    response = sb4dfritzlib.apis.ahahttp.ahahttp_request(params)
-    print(response)
-    print(response.text)
+    count = 0
+    while True:
+        count += 1
+        response = sb4dfritzlib.apis.ahahttp.ahahttp_request(params)
+        print(f"{count:3d}", response.text.strip())
+    # print(response)
+    # print(response.text)
     # print(sb4dfritzlib.apis.tr064.get_info(FRITZ_USER, FRITZ_PWD, FRITZ_IP).text)
 
     # results = sb4dfritzlib.apis.tr064.set_switch(FRITZ_USER, FRITZ_PWD, FRITZ_IP, TV, "TOGLE")
