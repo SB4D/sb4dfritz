@@ -19,22 +19,29 @@ AINS = list(DEVICES.values())
 ANGOLO, TV = AINS
 
 if __name__ == "__main__":
-    print("Testing stuff...\n")
+
+    USER = sb4dfritzlib.connection.FritzUser(FRITZ_USER, FRITZ_PWD, FRITZ_IP)
+
+    fritzbox_session = sb4dfritzlib.connection.FritzBoxConnection(USER)
+
+    print(fritzbox_session.sid)
+    
+    # print("Testing stuff...\n")
 
     
-    sid = sb4dfritzlib.connection.get_sid(FRITZ_USER, FRITZ_PWD)
-    print("Login successful. SID:", sid)
+    # sid = sb4dfritzlib.connection.get_sid(FRITZ_USER, FRITZ_PWD)
+    # print("Login successful. SID:", sid)
 
-    params = {
-        # 'ain': ain.replace("", " "),
-        'ain': ANGOLO,
-        'switchcmd': 'getswitchpower',
-        'sid': sid
-    }
-    from time import time 
-    for _ in range(60):
-        response = sb4dfritzlib.connection.aha_request(params)
-        print(f"{time():10.0f}, {response.text.strip():10s}")
+    # params = {
+    #     # 'ain': ain.replace("", " "),
+    #     'ain': ANGOLO,
+    #     'switchcmd': 'getswitchpower',
+    #     'sid': sid
+    # }
+    # from time import time 
+    # for _ in range(60):
+    #     response = sb4dfritzlib.connection.aha_request(params)
+    #     print(f"{time():10.0f}, {response.text.strip():10s}")
     # count = 0
     # while True:
     #     count += 1

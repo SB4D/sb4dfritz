@@ -7,6 +7,8 @@ URL_BASE = 'http://fritz.box/'
 AHA = 'webservices/homeautoswitch.lua'
 DATA = 'data.lua'
 
+
+
 def aha_request(params:dict[str:str])->requests.Response:
     """Basa HTTP GET request for the AHA-HTTP interface."""
     # Parameters for the GET request
