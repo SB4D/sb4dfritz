@@ -22,9 +22,15 @@ if __name__ == "__main__":
 
     USER = sb4dfritzlib.connection.FritzUser(FRITZ_USER, FRITZ_PWD, FRITZ_IP)
 
-    fritzbox_session = sb4dfritzlib.connection.FritzBoxConnection(USER)
+    fritzbox_session = sb4dfritzlib.connection.FritzBoxSession(USER)
+    sid = fritzbox_session.sid
 
-    print(fritzbox_session.sid)
+    message = sb4dfritzlib.connection.http.getdevicelistinfos(sid)
+    print(message)
+    # ains = fritzbox_session.switches
+    # for ain in ains:
+    #     stats = sb4dfritzlib.connection.http.getswitchpower(ain, sid)
+    #     print(stats)
     
     # print("Testing stuff...\n")
 
