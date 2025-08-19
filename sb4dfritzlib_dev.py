@@ -1,5 +1,6 @@
 import sb4dfritzlib
 import json
+import requests
 
 from os.path import abspath, relpath
 
@@ -20,27 +21,36 @@ ANGOLO, TV = AINS
 if __name__ == "__main__":
     print("Testing stuff...\n")
 
-    sid = sb4dfritzlib.apis.ahahttp.get_sid(FRITZ_USER, FRITZ_PWD)
+    
+    sid = sb4dfritzlib.connection.get_sid(FRITZ_USER, FRITZ_PWD)
     print("Login successful. SID:", sid)
 
     params = {
         # 'ain': ain.replace("", " "),
-        'ain': TV,
+        'ain': ANGOLO,
         'switchcmd': 'getswitchpower',
         'sid': sid
     }
-    count = 0
-    while True:
-        count += 1
-        response = sb4dfritzlib.apis.ahahttp.ahahttp_request(params)
-        print(f"{count:3d}", response.text.strip())
-    # print(response)
-    # print(response.text)
-    # print(sb4dfritzlib.apis.tr064.get_info(FRITZ_USER, FRITZ_PWD, FRITZ_IP).text)
-
-    # results = sb4dfritzlib.apis.tr064.set_switch(FRITZ_USER, FRITZ_PWD, FRITZ_IP, TV, "TOGLE")
-    # print(results.text)
+    from time import time 
+    for _ in range(60):
+        response = sb4dfritzlib.connection.aha_request(params)
+        print(f"{time():10.0f}, {response.text.strip():10s}")
+    # count = 0
+    # while True:
+    #     count += 1
+    #     response = sb4dfritzlib.apis.ahahttp.ahahttp_request(params)
+    #     print(f"{count:3d}", response.text.strip())
     
-    # for ain in AINS:
-    #     results = sb4dfritzlib.apis.tr064.get_specific_device_info(FRITZ_USER, FRITZ_PWD, FRITZ_IP, ain)
-    #     print(results.text)
+    # url = "http://fritz.box/data.lua"
+    # params = {
+    #     "xhr": "1",
+    #     "sid": sid,
+    #     "page": "sh_dev",   # or "homeauto" depending on what you want
+    #     "lang": "en",
+    # }
+
+    # resp = requests.get(url, params=params)
+    # # resp = sb4dfritzlib.apis.ahahttp.ahahttp_request(params,url)
+    # print(resp)  # often JSON with device info
+    # print(resp.text)  # often JSON with device info
+    

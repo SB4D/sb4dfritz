@@ -1,3 +1,5 @@
+"""Implements the TR-064 API for FRITZ!Box routers provided by AVM."""
+
 import requests, warnings
 from requests.auth import HTTPDigestAuth
 

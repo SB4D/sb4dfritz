@@ -1,10 +1,9 @@
-#!/usr/bin/env python3
-# vim: expandtab sw=4 ts=4
 """
-FRITZ!OS WebGUI Login
+FRITZ!OS WebGUI Login (modified)
 Get a sid (session ID) via PBKDF2 based challenge response algorithm.
 Fallback to MD5 if FRITZ!OS has no PBKDF2 support.
-AVM 2020-09-25
+AVM 2020-09-25 (code base)
+Stefan Behrens 2025-08-19 (modifications)
 """
 
 import sys
@@ -13,33 +12,6 @@ import time
 import urllib.request
 import urllib.parse
 import xml.etree.ElementTree as ET
-import requests
-
-
-#########################
-###  MAKING REQUESTS  ###
-#########################
-
-URL_BASE = 'http://fritz.box/webservices/homeautoswitch.lua'
-
-def ahahttp_request(params:dict[str:str])->requests.Response:
-    # ain = AINS[0].replace(" ", "")              # AIN of your smart device
-    # # cmd = 'getswitchlist'               # Example command (see command list below)
-    # cmd = 'getswitchpower'               # Example command (see command list below)
-    # cmd = 'getbasicdevicestats'               # Example command (see command list below)
-
-    # Parameters for the GET request
-    params = [f"{key}={val}" for key, val in params.items()]
-    params = "&".join(params)
-
-    request_url = f"{URL_BASE}?{params}"
-    response = requests.get(request_url, verify=False)  # Use verify=False if self-signed cert
-    return response
-
-
-#########################
-###  LOGIN PRODECURE  ###
-#########################
 
 LOGIN_SID_ROUTE = "/login_sid.lua?version=2"
 
