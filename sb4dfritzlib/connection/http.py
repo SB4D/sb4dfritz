@@ -1,13 +1,13 @@
 """Implements the HTTP interface for FRITZ!Box routers provided by AVM."""
 
 import requests
+from ..utilities.xml import xml_to_dict, pretty_print
 
+###  BASIC REQUEST TEMPLATES  ###
 
 URL_BASE = 'http://fritz.box/'
 AHA = 'webservices/homeautoswitch.lua'
 DATA = 'data.lua'
-
-
 
 def aha_basic_request(params:dict[str:str])->requests.Response:
     """Basa HTTP GET request for the AHA-HTTP interface."""
@@ -19,6 +19,8 @@ def aha_basic_request(params:dict[str:str])->requests.Response:
     response = requests.get(request_url, verify=False)  # Use verify=False if self-signed cert
     return response
 
+
+###  SPECIFIC REQUESTS FROM AHA-HTTP DOCUMENTATION  ###
 
 def getdevicelistinfos(sid:str)->str:
     # assemble parameter dictionary according to AHA-HTTP documentation
@@ -32,7 +34,9 @@ def getdevicelistinfos(sid:str)->str:
     reponse = aha_basic_request(params)
     # convert into list of strings representing the AINs
     infos = reponse.text.strip()
-    return infos
+    infos = xml_to_dict(infos)
+    device_infos = infos['device']
+    return device_infos
 
 
 def getswitchlist(sid:str)->list[str]:
@@ -51,7 +55,7 @@ def getswitchlist(sid:str)->list[str]:
     return ains
 
 
-def getswitchstate(ain:str, sid:str)->bool:
+def getswitchstate(ain:str, sid:str)->int:
     """Returns the on/off state of the switch with given AIN as 
     "1" for on, "0" for off, and "inval" for an invalid AIN."""
     # assemble parameter dictionary according to AHA-HTTP documentation
@@ -65,10 +69,10 @@ def getswitchstate(ain:str, sid:str)->bool:
     reponse = aha_basic_request(params)
     # extract state and convert to integer
     state = reponse.text.strip()
-    return state
+    return int(state)
 
 
-def setswitch(ain:str, sid:str, state:int=None)->bool:
+def setswitch(ain:str, sid:str, state:int=None)->int:
     """Sets the switch state of the switch with given AIN.
     
     Parameters:
@@ -96,7 +100,7 @@ def setswitch(ain:str, sid:str, state:int=None)->bool:
     return int(state)
 
 
-def getdeviceinfos(ain:str, sid:str)->str:
+def getdeviceinfos(ain:str, sid:str)->dict:
     """Get basic device information."""
     # assemble parameter dictionary according to AHA-HTTP documentation
     params = {
@@ -108,10 +112,11 @@ def getdeviceinfos(ain:str, sid:str)->str:
     # NOTE: response contains XML string
     reponse = aha_basic_request(params)
     infos = reponse.text.strip()
+    infos = xml_to_dict(infos)
     return infos
 
 
-def getbasicdevicestats(ain:str, sid:str)->str:
+def getbasicdevicestats(ain:str, sid:str)->dict:
     """Get basic statistic (temperature, power, voltage, energy) of
     device."""
     # assemble parameter dictionary according to AHA-HTTP documentation
@@ -123,7 +128,8 @@ def getbasicdevicestats(ain:str, sid:str)->str:
     # send basic AHA-HTTP request
     # NOTE: response contains XML string
     reponse = aha_basic_request(params)
-    stats = reponse.text.strip()
+    stats = reponse.text
+    stats = xml_to_dict(stats)
     return stats
 
 

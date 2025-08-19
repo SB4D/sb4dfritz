@@ -22,11 +22,24 @@ if __name__ == "__main__":
 
     USER = sb4dfritzlib.connection.FritzUser(FRITZ_USER, FRITZ_PWD, FRITZ_IP)
 
-    fritzbox_session = sb4dfritzlib.connection.FritzBoxSession(USER)
-    sid = fritzbox_session.sid
+    homeauto = sb4dfritzlib.homeauto.HomeAutoSystem(USER)
 
-    message = sb4dfritzlib.connection.http.getdevicelistinfos(sid)
-    print(message)
+    print(homeauto.devices[0].name)
+    print(homeauto.devices[0].model)
+    print(homeauto.devices[0].device_id)
+    print(homeauto.devices[0].ain)
+    print(homeauto.devices[0].present)
+    print(homeauto.devices[0].get_basic_device_stats().keys())
+    print(homeauto.devices[0].get_basic_device_stats())
+    print(homeauto.devices[0].get_basic_device_stats()['energy'])
+    print(homeauto.devices[0].get_power_measurements())
+
+
+    # fritzbox_session = sb4dfritzlib.connection.FritzBoxSession(USER)
+    # sid = fritzbox_session.sid
+
+    # message = sb4dfritzlib.connection.http.getdevicelistinfos(sid)
+    # print(message)
     # ains = fritzbox_session.switches
     # for ain in ains:
     #     stats = sb4dfritzlib.connection.http.getswitchpower(ain, sid)

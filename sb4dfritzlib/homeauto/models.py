@@ -1,0 +1,76 @@
+"""Provides classes implementing features of speific types of 
+home automation devices"""
+
+from ..connection import tr064, http, FritzBoxSession, FritzUser
+from ..utilities import bitmask, xml
+from datetime import datetime, timedelta
+
+
+
+class HomeAutoDevice():
+
+    def __init__(self, ain:str, sid:str):
+        self.sid = sid
+        self.ain = ain
+        self.switch_mode = None
+        self._info_on_init = self._get_info()
+    
+    def __str__(self):
+        return f"{self.name} ({self.model})"
+    
+    def _get_info(self):
+        infos = http.getdeviceinfos(self.ain, self.sid)
+        self.name = infos['name']
+        self.model = f"{infos['manufacturer']} {infos['productname']}"
+        self.device_id = infos['id']
+        self.present = bool(int(infos['present']))
+        functionbitmask = int(infos['functionbitmask'])
+        functionbitmask = bitmask.decode(functionbitmask)
+        self.is_switchable = functionbitmask[15]
+        if self.is_switchable: 
+            self.switch_mode = infos['switch']['mode']
+        return infos
+    
+    def set_switch(self, state:bool)->bool:
+        """Set switch state if switchable (on=True ,off=False)."""
+        if self.is_switchable:
+            response = http.setswitch(self.ain, self.sid, int(state))
+            state = int(response.text.strip())
+            return bool(state)
+        
+    def toggle_switch(self)->bool:
+        """Toggle switch state if switchable."""
+        if self.is_switchable:
+            response = http.setswitch(self.ain, self.sid, 2)
+            state = int(response.text.strip())
+            return bool(state)
+    
+    # TODO implement 
+    def get_basic_device_stats(self):
+        stats = http.getbasicdevicestats(self.ain, self.sid)
+        for key in stats:
+            stat = stats[key]['stats']
+            if type(stat) == dict:
+                stats[key]['stats'] = xml.prepare_stats_dict(stat)
+            else:
+                for idx, sta in enumerate(stat):
+                    stats[key]['stats'][idx] = xml.prepare_stats_dict(sta)
+        return stats
+
+    def get_power_measurements(self):
+        stats = self.get_basic_device_stats()
+        return stats['power']
+
+
+
+class HomeAutoSystem():
+
+    def __init__(self, user:FritzUser):
+        self.session = FritzBoxSession(user)
+        self.devices = self.get_devices()
+    
+    def get_devices(self):
+        sid = self.session.sid
+        ains = self.session.ains
+        devices = [HomeAutoDevice(ain, sid) for ain in ains]
+        return devices
