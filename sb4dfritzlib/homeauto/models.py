@@ -59,8 +59,46 @@ class HomeAutoDevice():
 
     def get_power_measurements(self):
         stats = self.get_basic_device_stats()
-        return stats['power']
+        return stats['power']['stats']
 
+    def get_latest_power_record(self):
+        start = datetime.now()
+        power_stats = self.get_power_measurements()
+        end = datetime.now()
+        datatime:datetime = power_stats['datatime']
+        duration = (end - start).total_seconds()
+        latency = (end - datatime).total_seconds()
+        offset = (datatime - start).total_seconds() 
+        power = power_stats['data'][0] / 100
+        power_record = {
+            'power':power,
+            'datatime':datatime,
+            'starttime':start,
+            'endtime':end,
+            'duration':duration,
+            'latency':latency,
+            'offset':offset,
+        }
+        return power_record
+
+# TODO Figure out how to write this
+class StatsMonitor:
+
+    def __init__(self):
+        self.grid:int
+        self.basetime:datetime
+        self.offset:timedelta
+        pass
+
+    def start(self):
+        pass
+
+    def stop(self):
+        pass
+
+    def adjust(self, power_record):
+        self.basetime = power_record['datatime']
+        pass
 
 
 class HomeAutoSystem():

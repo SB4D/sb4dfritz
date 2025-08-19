@@ -24,15 +24,17 @@ if __name__ == "__main__":
 
     homeauto = sb4dfritzlib.homeauto.HomeAutoSystem(USER)
 
-    print(homeauto.devices[0].name)
-    print(homeauto.devices[0].model)
-    print(homeauto.devices[0].device_id)
-    print(homeauto.devices[0].ain)
-    print(homeauto.devices[0].present)
-    print(homeauto.devices[0].get_basic_device_stats().keys())
-    print(homeauto.devices[0].get_basic_device_stats())
-    print(homeauto.devices[0].get_basic_device_stats()['energy'])
-    print(homeauto.devices[0].get_power_measurements())
+    print(homeauto.devices[4].name)
+    # print(homeauto.devices[0].model)
+    # print(homeauto.devices[0].device_id)
+    # print(homeauto.devices[0].ain)
+    # print(homeauto.devices[0].present)
+    # print(homeauto.devices[0].get_basic_device_stats().keys())
+    # print(homeauto.devices[0].get_basic_device_stats())
+    # print(homeauto.devices[0].get_basic_device_stats()['energy'])
+    power_record = homeauto.devices[4].get_latest_power_record()
+    for key, val in power_record.items():
+        print(f"{key:15s} {val}")
 
 
     # fritzbox_session = sb4dfritzlib.connection.FritzBoxSession(USER)

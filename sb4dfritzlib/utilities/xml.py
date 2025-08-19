@@ -132,7 +132,7 @@ def xml_to_dict(xml_string: str) -> dict:
 def prepare_stats_dict(stats):
     stats['count'] = int(stats['count'])
     stats['grid'] = int(stats['count'])
-    timestamp = int(stats['count'])
+    timestamp = int(stats['datatime'])
     timestamp = datetime.fromtimestamp(timestamp)
     stats['datatime'] = timestamp
     data = stats['data']
