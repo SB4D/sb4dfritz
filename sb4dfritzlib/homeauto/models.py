@@ -2,7 +2,7 @@
 home automation devices"""
 
 from ..connection import tr064, http, FritzBoxSession, FritzUser
-from ..utilities import bitmask, xml
+from ..utilities import bitmask, xml, is_stats_dict, prepare_stats_dict
 from datetime import datetime, timedelta
 
 
@@ -46,20 +46,40 @@ class HomeAutoDevice():
             return bool(state)
     
     # TODO implement 
+    # def get_basic_device_stats(self):
+    #     stats = http.getbasicdevicestats(self.ain, self.sid)
+    #     for key in stats:
+    #         stat = stats[key]['stats']
+    #         if type(stat) == dict:
+    #             stats[key]['stats'] = xml.prepare_stats_dict(stat)
+    #         else:
+    #             for idx, sta in enumerate(stat):
+    #                 stats[key]['stats'][idx] = xml.prepare_stats_dict(sta)
+    #     return stats
+
     def get_basic_device_stats(self):
-        stats = http.getbasicdevicestats(self.ain, self.sid)
-        for key in stats:
-            stat = stats[key]['stats']
-            if type(stat) == dict:
-                stats[key]['stats'] = xml.prepare_stats_dict(stat)
-            else:
-                for idx, sta in enumerate(stat):
-                    stats[key]['stats'][idx] = xml.prepare_stats_dict(sta)
-        return stats
+        """Get statisticts (temperature, energy, power, ...) recorded 
+        by device."""
+        # get statistics via AHA-HTTP interface for processing
+        stats_raw = http.getbasicdevicestats(self.ain, self.sid)
+        # process statistics
+        stats_processed = {}
+        for quantity, data in stats_raw.items():
+            stats = data['stats']
+            if is_stats_dict(stats):
+                stats = prepare_stats_dict(stats)
+                stats_processed[quantity] = stats
+            elif type(stats) == list:
+                for idx, item in enumerate(stats):
+                    if is_stats_dict(item):
+                        item = prepare_stats_dict(item)
+                        stats_processed[f"{quantity}_{idx+1}"] = item
+        return stats_processed
+
 
     def get_power_measurements(self):
         stats = self.get_basic_device_stats()
-        return stats['power']['stats']
+        return stats['power']
 
     def get_latest_power_record(self):
         start = datetime.now()
