@@ -9,7 +9,7 @@ URL_BASE = 'http://fritz.box/'
 AHA = 'webservices/homeautoswitch.lua'
 DATA = 'data.lua'
 
-def aha_basic_request(params:dict[str:str])->requests.Response:
+def basic_request(params:dict[str:str])->requests.Response:
     """Basa HTTP GET request for the AHA-HTTP interface."""
     # Parameters for the GET request
     params = [f"{key}={val}" for key, val in params.items()]
@@ -31,7 +31,7 @@ def getdevicelistinfos(sid:str)->str:
     # send basic AHA-HTTP request
     # NOTE: response contains XML string
     # ending with a line break
-    reponse = aha_basic_request(params)
+    reponse = basic_request(params)
     # convert into list of strings representing the AINs
     infos = reponse.text.strip()
     infos = xml_to_dict(infos)
@@ -49,7 +49,7 @@ def getswitchlist(sid:str)->list[str]:
     # send basic AHA-HTTP request
     # NOTE: response contains AINs of switches as comma separated list
     # ending with a line break
-    reponse = aha_basic_request(params)
+    reponse = basic_request(params)
     # convert into list of strings representing the AINs
     ains = reponse.text.strip().split(",")
     return ains
@@ -66,7 +66,7 @@ def getswitchstate(ain:str, sid:str)->int:
     }
     # send basic AHA-HTTP request
     # NOTE: response contains "1\n" for on and "0\n" for off
-    reponse = aha_basic_request(params)
+    reponse = basic_request(params)
     # extract state and convert to integer
     state = reponse.text.strip()
     return int(state)
@@ -94,7 +94,7 @@ def setswitch(ain:str, sid:str, state:int=None)->int:
     # send basic AHA-HTTP request
     # NOTE: response contains AINs of switches as comma separated list
     # ending with a line break
-    reponse = aha_basic_request(params)
+    reponse = basic_request(params)
     # convert into list of strings representing the AINs
     state = reponse.text.strip()
     return int(state)
@@ -110,7 +110,7 @@ def getdeviceinfos(ain:str, sid:str)->dict:
     }
     # send basic AHA-HTTP request
     # NOTE: response contains XML string
-    reponse = aha_basic_request(params)
+    reponse = basic_request(params)
     infos = reponse.text.strip()
     infos = xml_to_dict(infos)
     return infos
@@ -127,7 +127,7 @@ def getbasicdevicestats(ain:str, sid:str)->dict:
     }
     # send basic AHA-HTTP request
     # NOTE: response contains XML string
-    reponse = aha_basic_request(params)
+    reponse = basic_request(params)
     stats = reponse.text
     stats = xml_to_dict(stats)
     return stats
@@ -144,7 +144,7 @@ def getswitchpower(ain:str, sid:str)->float:
     }
     # send basic AHA-HTTP request
     # NOTE: response contains power consumption in mW
-    reponse = aha_basic_request(params)
+    reponse = basic_request(params)
     # convert power value to Watt
     power = reponse.text.strip()
     power = float(power) / 1000

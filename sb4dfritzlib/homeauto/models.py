@@ -1,7 +1,7 @@
 """Provides classes implementing features of speific types of 
 home automation devices"""
 
-from ..connection import tr064, http, FritzBoxSession, FritzUser
+from ..connection import ahahttp, tr064, FritzBoxSession, FritzUser
 from ..utilities import bitmask, xml, is_stats_dict, prepare_stats_dict
 from datetime import datetime, timedelta
 
@@ -19,7 +19,7 @@ class HomeAutoDevice():
         return f"{self.name} ({self.model})"
     
     def _get_info(self):
-        infos = http.getdeviceinfos(self.ain, self.sid)
+        infos = ahahttp.getdeviceinfos(self.ain, self.sid)
         self.name = infos['name']
         self.model = f"{infos['manufacturer']} {infos['productname']}"
         self.device_id = infos['id']
@@ -34,14 +34,14 @@ class HomeAutoDevice():
     def set_switch(self, state:bool)->bool:
         """Set switch state if switchable (on=True ,off=False)."""
         if self.is_switchable:
-            response = http.setswitch(self.ain, self.sid, int(state))
+            response = ahahttp.setswitch(self.ain, self.sid, int(state))
             state = int(response.text.strip())
             return bool(state)
         
     def toggle_switch(self)->bool:
         """Toggle switch state if switchable."""
         if self.is_switchable:
-            response = http.setswitch(self.ain, self.sid, 2)
+            response = ahahttp.setswitch(self.ain, self.sid, 2)
             state = int(response.text.strip())
             return bool(state)
     
@@ -61,7 +61,7 @@ class HomeAutoDevice():
         """Get statisticts (temperature, energy, power, ...) recorded 
         by device."""
         # get statistics via AHA-HTTP interface for processing
-        stats_raw = http.getbasicdevicestats(self.ain, self.sid)
+        stats_raw = ahahttp.getbasicdevicestats(self.ain, self.sid)
         # process statistics
         stats_processed = {}
         for quantity, data in stats_raw.items():

@@ -1,4 +1,4 @@
-from . import http
+from . import ahahttp
 from ._login import get_sid
 
 class FritzUser():
@@ -16,13 +16,13 @@ class FritzBoxSession():
         self.ip = fritz_user.ip
         self.sid = self.update_sid()
         self.ains = self.get_ains()
-        self.switches = http.getswitchlist(self.sid)
+        self.switches = ahahttp.getswitchlist(self.sid)
 
     def update_sid(self):
         return get_sid(self.user, self.pwd, self.ip)
     
     def get_ains(self):
-        devices = http.getdevicelistinfos(self.sid)
+        devices = ahahttp.getdevicelistinfos(self.sid)
         ains = [dev['identifier'].replace(" ", "") for dev in devices]
         return ains
     
