@@ -22,6 +22,24 @@ class LoginState:
         self.is_pbkdf2 = challenge.startswith("2$")
 
 
+def check_sid_validity(sid:str|int, address:str="fritz.box")->bool:
+    """Check if the given SID is valid.
+    
+    Args
+    - sid : 16 digit integer (possibly formatted as string)
+    - address : FRITZ!Box IP or address (optional, default: fritz.box)
+    
+    Returns
+    - sid_is_valid : Boolean, True if SID is valid, False else
+    """
+    url = f"http://{address}/login_sid.lua?version=2&sid={sid}"
+    resp = urllib.request.urlopen(url)
+    root = ET.fromstring(resp.read())
+    sid_value = root.find("SID").text
+    sid_is_valid = (sid_value != "0000000000000000")
+    return sid_is_valid
+
+
 def get_sid(username: str, password: str, address:str="fritz.box") -> str:
     """ Get a sid by solving the PBKDF2 (or MD5) challenge-response
     process. """
@@ -99,3 +117,6 @@ def send_response(box_url: str, username: str, challenge_response: str)->str:
     # Parse SID from resulting XML.
     xml = ET.fromstring(http_response.read())
     return xml.find("SID").text
+
+## FOR TESTING PURPOSES ##
+# if __name__ == "__main__":
