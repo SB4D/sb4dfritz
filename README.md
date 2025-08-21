@@ -1,9 +1,10 @@
-# sb4dfritz
-This project is mainly an exercise an object oriented programming in Python, but it does have a real life application: it provides customized functionality for a smart plug in my home automation setup. 
+# sb4dfritz - Specialized Functionality for AVM FRITZ! Home Automation Systems
+
+This is mainly a learning project for object oriented programming and network communication using Python. It provides specialized functionality for controlling smart plugs in home automation systems within an AVM FRITZ!Box home network.
 
 * For a (virtual) demonstration, please run the script `sb4dfritz_demo.py`.
-* The main features are provided in `sb4dfritz.py` building on the `fritzconnection` API.
+* The main features are provided in `sb4dfritz.py`, currently building on the `fritzconnection` library.
 * The script `sb4dfritz_test.py` provides virtual simulations of electrical appliances connected to AVM FRITZ! smart plugs.
-* [This notebook](https://github.com/SB4D/sb4dfritz/blob/main/Notebooks/NOTES--writing_a_test_mode.ipynb) contains extensive notes on the development of `sb4dfritz_test.py` and the quirks of AVM FRITZ! smart plugs.
+* In progress: `sb4dfritzlib` is a self-written library meant to replace `fritzconnection` in future versions. 
 
-In the future, I plan to add further functionality, in particular, a simple option to toggle between automatic and manual switching. This will also be an exercise in network communication using the SOAP protocol (see [here](https://github.com/SB4D/sb4dfritz/blob/main/Notebooks/NOTES--toggle_automatic_switching.ipynb) for more notes on this issue). 
+`sb4dfritzlib` already implements the TR-064 and AHA-HTTP interfaces provided by AVM. I plan to add further functionality, icluding a simple method to toggle between automatic and manual switching. Since the latter is not available via the official APIs, a certain amount of trickery is needed (essentially reverse engineering the behavior of the web-interface). 
