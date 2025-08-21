@@ -2,4 +2,4 @@
 home automation devices within an AVM FRITZ!Box network."""
 
 from . import models
-from .models import HomeAutoSystem
+from .models import HomeAutoSystem, HomeAutoDevice

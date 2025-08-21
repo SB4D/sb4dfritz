@@ -21,12 +21,17 @@ ANGOLO, TV = AINS
 
 if __name__ == "__main__":
 
-    USER = sb4dfritzlib.connection.FritzUser(FRITZ_USER, FRITZ_PWD, FRITZ_IP)
+    # USER = sb4dfritzlib.connection.FritzUser(FRITZ_USER, FRITZ_PWD, FRITZ_IP)
 
-    homeauto = sb4dfritzlib.homeauto.HomeAutoSystem(USER)
+    # homeauto = sb4dfritzlib.homeauto.HomeAutoSystem(USER)
 
-    print(homeauto.devices[0].name)
-    print(homeauto.devices[0].get_basic_device_stats().keys())
-    # print(homeauto.devices[0].get_basic_device_stats())
-    # print(homeauto.devices[0].get_basic_device_stats()['energy_2'])
-    power_record = homeauto.devices[4].get_latest_power_record()
+    # print(homeauto.devices[0].name)
+    # print(homeauto.devices[0].get_basic_device_stats().keys())
+    # # print(homeauto.devices[0].get_basic_device_stats())
+    # # print(homeauto.devices[0].get_basic_device_stats()['energy_2'])
+    # power_record = homeauto.devices[4].get_latest_power_record()
+
+    ain = "116300073749"
+    sid = "df864dc2c762661d"
+    tv = sb4dfritzlib.homeauto.HomeAutoDevice(ain, sid)
+    tv.switch_off_when_idle(status_messages='console', debug_mode=True)

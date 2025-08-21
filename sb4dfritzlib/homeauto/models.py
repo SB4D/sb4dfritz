@@ -1,12 +1,15 @@
 """Provides classes implementing features of speific types of 
 home automation devices"""
 
-from ..connection import ahahttp, tr064, FritzBoxSession, FritzUser
+# from ..connection import ahahttp, tr064, FritzBoxSession, FritzUser
+from ..connection.session import FritzUser, FritzBoxSession
+from ..connection import ahahttp 
 from ..utilities import bitmask, xml, is_stats_dict, prepare_stats_dict
 from datetime import datetime, timedelta
 
 
-
+#TODO: add alternative initialization within `HomeAutoSystem`
+#TODO: add stats monitor
 class HomeAutoDevice():
 
     def __init__(self, ain:str, sid:str):
@@ -31,12 +34,18 @@ class HomeAutoDevice():
             self.switch_mode = infos['switch']['mode']
         return infos
     
+    def get_switch_state(self)->bool:
+        """Get current switch state (on=True ,off=False)."""
+        if self.is_switchable:
+            state = ahahttp.getswitchstate(self.ain, self.sid)
+            return bool(state)
+
+
     def set_switch(self, state:bool)->bool:
         """Set switch state if switchable (on=True ,off=False)."""
         if self.is_switchable:
-            response = ahahttp.setswitch(self.ain, self.sid, int(state))
-            state = int(response.text.strip())
-            return bool(state)
+            new_state = ahahttp.setswitch(self.ain, self.sid, int(state))
+            return bool(new_state)
         
     def toggle_switch(self)->bool:
         """Toggle switch state if switchable."""
@@ -45,18 +54,91 @@ class HomeAutoDevice():
             state = int(response.text.strip())
             return bool(state)
     
-    # TODO implement 
-    # def get_basic_device_stats(self):
-    #     stats = http.getbasicdevicestats(self.ain, self.sid)
-    #     for key in stats:
-    #         stat = stats[key]['stats']
-    #         if type(stat) == dict:
-    #             stats[key]['stats'] = xml.prepare_stats_dict(stat)
-    #         else:
-    #             for idx, sta in enumerate(stat):
-    #                 stats[key]['stats'][idx] = xml.prepare_stats_dict(sta)
-    #     return stats
+    #TODO: improve status messages
+    #TODO: add logging feature
+    #TODO: add timer?
+    def switch_off_when_idle(
+            self, 
+            power_threshold:float=5,
+            network_threshold:float=0.9,
+            idle_cycles:int=2,
+            status_messages:str=None,
+            log_file:str=None,
+            debug_mode:bool=False
+            )->None:
+        """Monitors the power consumption and waits for the appliances to be 
+        *idle* before switching off. Here *idle* means that power values and
+        request durations are reported within specified bounds (the arguments
+        `power_threshold`, `network_threshold`) for a specified number of 
+        measurement cycles (`idle_cycles`). 
+        
+        Includes options for status message output and logging.
+        
+        ARGUMENTS:
+        - power_threshold : power consumption in idle state (in Watts)
+        - network_threshold : tolerated request duration (in seconds)
+        - idle_cycles : number of idle measurement cycles required
+        - status_messages : target for status message output
+        - log_file : path of log file
+        - debug_mode : if True, the switch state is not changed
+        """
+        # function to handle status messages
+        def status_update(*args, output_target=status_messages):
+            # available targets and their output functions
+            OUTPUT_TARGETS = {
+                'console' : print,
+            }
+            # check if `target` is admissable
+            if output_target in OUTPUT_TARGETS:
+                # get updater function for `target` 
+                updater = OUTPUT_TARGETS[output_target]
+                # run it on text
+                updater(*args)
+        # TODO add logging feature
+        def log_data(data, log_file=log_file):
+            pass
 
+        # start main routine
+        status_update(f'Switching off "{self.name}" when idle...')
+        # check if switch is on
+        switch_is_on = self.get_switch_state()
+        if not switch_is_on:
+            status_update("Switch is already off. Nothing to do.")
+            return
+        # start monitoring power consumption
+        status_update("Monitoring power consumption...")
+        power_monitor = []
+        while switch_is_on:
+            # get the latest power measurement
+            data = self.get_latest_power_record()
+            # add to power_monitor on first pass or if 'datatime' jumps
+            L = len(power_monitor)
+            if L == 0 or data['datatime'] != power_monitor[-1]['datatime']:
+                power_monitor.append(data)
+                log_data(data)
+                status_update(data['power'], data['duration'], data['latency'])
+            # check the last measurements for idle status
+            # NOTE: the very first measurement might be unreliable
+            if L > idle_cycles:
+                last_measurements = power_monitor[-idle_cycles:]
+                last_power_vals = [data['power'] for data in last_measurements]
+                last_durations = [data['duration'] for data in last_measurements]
+                last_latencies = [data['latency'] for data in last_measurements]
+                appliances_are_idle = \
+                    max(last_power_vals) < power_threshold and \
+                    max(last_durations) < network_threshold
+                if appliances_are_idle:
+                    status_update(
+                        "Ideal state detected:", 
+                        last_power_vals, 
+                        last_durations, 
+                        last_latencies
+                    )
+                    if debug_mode:
+                        switch_is_on = False
+                    else:
+                        switch_is_on = self.set_switch(False)
+    
     def get_basic_device_stats(self):
         """Get statisticts (temperature, energy, power, ...) recorded 
         by device."""
@@ -75,7 +157,6 @@ class HomeAutoDevice():
                         item = prepare_stats_dict(item)
                         stats_processed[f"{quantity}_{idx+1}"] = item
         return stats_processed
-
 
     def get_power_measurements(self):
         stats = self.get_basic_device_stats()
@@ -101,26 +182,8 @@ class HomeAutoDevice():
         }
         return power_record
 
-# TODO Figure out how to write this
-class StatsMonitor:
 
-    def __init__(self):
-        self.grid:int
-        self.basetime:datetime
-        self.offset:timedelta
-        pass
-
-    def start(self):
-        pass
-
-    def stop(self):
-        pass
-
-    def adjust(self, power_record):
-        self.basetime = power_record['datatime']
-        pass
-
-
+#TODO: improve initialization (takes too long)
 class HomeAutoSystem():
 
     def __init__(self, user:FritzUser):
