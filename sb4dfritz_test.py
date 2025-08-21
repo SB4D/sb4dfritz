@@ -99,7 +99,7 @@ class MeasurementSimulator():
         # pass to the basic_device_stats attribute
         self.basic_device_stats = device_stats
 
-    # TODO THE WAY KEAYS ARE DEALT WITH FEELS CLUMSY
+    # TODO THE WAY KEYS ARE DEALT WITH FEELS CLUMSY
     def _generate_basic_device_stats_template(self):
         # designated dictionary keys
         LEVEL_1_KEYS = ['temperature', 'voltage', 'power', 'energy']
@@ -191,7 +191,7 @@ class MeasurementSimulator():
 
 
 
-class HomeAutomationDeviceSimulator:
+class SmartPlugSimulator:
     """Simulates an instance of HomeAutomationDevice in fritzconnection."""
 
     def __init__(self, name="Smart Plug Simulator"):
@@ -202,7 +202,7 @@ class HomeAutomationDeviceSimulator:
         self.identifier = "12345 1234567"
         # attributes implicitly used by SmartPlug 
         # by way of the methods below
-        self._switch_state = True
+        self.__switch_state = True
         self.sensor:MeasurementSimulator = MeasurementSimulator()
     
     def is_switchable(self):
@@ -227,7 +227,7 @@ class HomeAutomationDeviceSimulator:
 
 
 if __name__ == "__main__":
-    plug_simulator = HomeAutomationDeviceSimulator()
+    plug_simulator = SmartPlugSimulator()
 
     simulated_plug = SmartPlug(plug_simulator)
 

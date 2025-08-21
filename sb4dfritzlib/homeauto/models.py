@@ -54,9 +54,9 @@ class HomeAutoDevice():
             state = int(response.text.strip())
             return bool(state)
     
-    #TODO: improve status messages
     #TODO: add logging feature
     #TODO: add timer?
+    #TODO: better width option for console out?
     def switch_off_when_idle(
             self, 
             power_threshold:float=5,
@@ -82,6 +82,8 @@ class HomeAutoDevice():
         - log_file : path of log file
         - debug_mode : if True, the switch state is not changed
         """
+        # width for console output
+        WIDTH = 80
         # function to handle status messages
         def status_update(*args, output_target=status_messages):
             # available targets and their output functions
@@ -99,14 +101,14 @@ class HomeAutoDevice():
             pass
 
         # start main routine
-        status_update(f'Switching off "{self.name}" when idle...')
+        status_update(f'Switching off "{self.name}" when idle...\n')
         # check if switch is on
         switch_is_on = self.get_switch_state()
         if not switch_is_on:
             status_update("Switch is already off. Nothing to do.")
             return
         # start monitoring power consumption
-        status_update("Monitoring power consumption...")
+        status_update("Monitoring power consumption..." + "\n" + "-" * WIDTH)
         power_monitor = []
         while switch_is_on:
             # get the latest power measurement
@@ -116,7 +118,13 @@ class HomeAutoDevice():
             if L == 0 or data['datatime'] != power_monitor[-1]['datatime']:
                 power_monitor.append(data)
                 log_data(data)
-                status_update(data['power'], data['duration'], data['latency'])
+                status_update(
+                    "Power: {:7.2f} W | Duration: {:5.2f} s | Latency: {:5.2f} s".format(
+                        data['power'], 
+                        data['duration'], 
+                        data['latency'], 
+                    )
+                )
             # check the last measurements for idle status
             # NOTE: the very first measurement might be unreliable
             if L > idle_cycles:
@@ -129,10 +137,7 @@ class HomeAutoDevice():
                     max(last_durations) < network_threshold
                 if appliances_are_idle:
                     status_update(
-                        "Ideal state detected:", 
-                        last_power_vals, 
-                        last_durations, 
-                        last_latencies
+                        "-" * WIDTH + "\n" + "Idle state detected. Switching off..."
                     )
                     if debug_mode:
                         switch_is_on = False

@@ -3,6 +3,7 @@
 *.bat
 avm_resources/
 logs/
+sb4dfritzlib_dev.py
 # ----------------
 
 # Byte-compiled / optimized / DLL files
