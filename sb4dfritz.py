@@ -103,7 +103,7 @@ class SmartPlug():
         Returns:
             info : dictionary containing the following information:
                 'power' : lastest power value recorded by device
-                'record time' : timestamp of record
+                'datatime' : timestamp of record
                 'request time' : timestamp of request
                 'repsonse time' : timestamp of response
                 'duration' : time between request and response in seconds
@@ -128,347 +128,96 @@ class SmartPlug():
             'request time' : request_time,
             'response time' : response_time,
             'duration' : duration,
-            'record time' : record_time,
+            'datatime' : record_time,
             'power' : power,
             'latency' : latency,
         }
         return data
-    
-    def get_reliable_power_record(self, interval=2):
-        """Returns a reliable power record. 
+
+    def switch_off_when_idle(
+            self, 
+            power_threshold:float=5,
+            network_threshold:float=0.9,
+            idle_cycles:int=2,
+            status_messages:str=None,
+            log_file:str=None,
+            debug_mode:bool=False
+            )->None:
+        """Monitors the power consumption and waits for the appliances to be 
+        *idle* before switching off. Here *idle* means that power values and
+        request durations are reported within specified bounds (the arguments
+        `power_threshold`, `network_threshold`) for a specified number of 
+        measurement cycles (`idle_cycles`). 
         
-        Explanation:
-        Note that .get_latest_power_record() does not always give reliable 
-        information. If no power stats have been requested from the smart  
-        plug in a while, it usually returns an outdated power record, as 
-        can be seen by the time stamp. To remedy this, one has to "wake up"
-        the smart plug by sending a few requests until up to date information
-        is returned. This may take up to ~15 seconds.
-
-        Arguments:
-        - interval: time to pause until the next request
-        Returns:
-        - power_record: a power record as returned by .get_latest_power_record()
-        """
-        # get initial power record and extract its timestamp
-        power_record = self.get_latest_power_record()
-        init_time = power_record['record time']
-        # do the same once more right away
-        power_record = self.get_latest_power_record()
-        next_time = power_record['record time']
-        # unless the timestamp has changed, way a bit and repeat until it changes
-        while next_time == init_time:
-            time.sleep(interval)
-            power_record = self.get_latest_power_record()
-            next_time = power_record['record time']
-        # return the final power record
-        return power_record
-    
-    def get_next_power_record(self, base_time, cycle_time=10):
-        """Schedules the next iteration in a cycle of power record requests
-        starting at a given timestamp (base_time) repeating every (cycle) seconds.
-
-        Arguments:
-        - base_time: the timestamp of the start of the cycle
-        - cycle_time: the cycle length in seconds
-        Returns:
-        - power_record: a power record as returned by .get_latest_power_record()
-        """
-        exec_time = base_time
-        while exec_time < datetime.datetime.now():
-            exec_time += datetime.timedelta(seconds=cycle_time)
-        sleep_time = (exec_time - datetime.datetime.now()).total_seconds()
-        time.sleep(sleep_time)
-        power_record = self.get_latest_power_record()
-        return power_record
-
-
-    def turn_off_if_idle(self,power_record,latency_threshold=2.5):
-        """Check if the plug was reported idle with an acceptable latency, and if so, 
-        turn it off.
+        Includes options for status message output and logging.
         
-        Arguments:
-        - power_record: a power record as returned by .get_latest_power_record()
-        - latency_threshold: maximal latency considered to be reliable
-        Returns:
-        - boolean indicating the final plug state (True indicates that)
+        ARGUMENTS:
+        - power_threshold : power consumption in idle state (in Watts)
+        - network_threshold : tolerated request duration (in seconds)
+        - idle_cycles : number of idle measurement cycles required
+        - status_messages : target for status message output
+        - log_file : path of log file
+        - debug_mode : if True, the switch state is not changed
         """
-        # compare the power record to the idle threshold
-        device_idle = power_record['power'] < self.idle_threshold
-        # check the latency against 
-        latency_ok = 0 <= power_record['latency'] < latency_threshold
-        # act accordingly
-        if device_idle and latency_ok:
-            self.set_switch(False)
-            return False
-        else:
-            return True
-        
-    def turn_off_when_idle(self, ideal_latency:float=0.5, cycle_detection_precision:int=1, silent:bool = True) -> None:
-        """Turns the smart plug off only when a power record with acceptable latency
-        indicates idle state. 
+        # width for console output
+        WIDTH = 80
+        # function to handle status messages
+        def status_update(*args, output_target=status_messages):
+            # available targets and their output functions
+            OUTPUT_TARGETS = {
+                'console' : print,
+            }
+            # check if `target` is admissable
+            if output_target in OUTPUT_TARGETS:
+                # get updater function for `target` 
+                updater = OUTPUT_TARGETS[output_target]
+                # run it on text
+                updater(*args)
+        # TODO add logging feature
+        def log_data(data, log_file=log_file):
+            pass
 
-        The strategy is to set up a request cycle that and synchronize it to
-        the power measurement cycle of the smart plug. The latter is approximated 
-        with the specified precision using a divide and conquer strategy.
-
-        Arguments:
-        - ideal_latency: sets the ideal latency in seconds (default = 0.5)
-        - cycle_detection_precision: determines the precision of the approximation
-        as 10**(-cycle_detection_precision)
-        - silent: controls if status updates are given as console output
-        Returns:
-        - None
-        """
-        # Help functions for console output
-        def _status_update(status_string:str)->None:
-            """Print input string to console if silent==False."""
-            if not silent:
-                print(status_string)
-        def _power_update(power_record:dict,initial:bool=False)->None:
-            """Print formatted extract of power record."""
-            power = f"{power_record['power']:7.2f} W"
-            record_time = print_timestamp(power_record['record time'],dig=0)
-            request_time = print_timestamp(power_record['request time'],dig=cycle_detection_precision)
-            latency = f"{power_record['latency']:5.2f} s"
-            if initial:
-                status_string = f"Power: {power:12} Latency: {latency:10}"
-            else:
-                status_string = f"Power: {power:12} Latency: {latency:10}"
-                # status_string = f"Power: {power:12} Latency: {latency:10} (Increment: +/-{increment:0.3f} s, Offset: {offset:0.6f} s, Lower Bound: {lower_bound:0.6f} s, Minimal Latency: {minimal_latency:0.6f}, Threshold: {latency_threshold:0.6f} s)"
-            _status_update(status_string)
-        def _power_off_update(switch_is_on:bool)->None:
-            """Power off notification."""
-            if not switch_is_on:
-                _status_update("Device reported idle with low latency. Turning off...")
-
-        ## MAIN ROUTINE
-        # check if smart plug is on
+        # start main routine
+        status_update(f'Switching off "{self.DeviceName}" when idle...\n')
+        # check if switch is on
         switch_is_on = self.get_switch_state()
-        # if not, do nothing
         if not switch_is_on:
-            _status_update(f"{self.DeviceName} is already off.")
+            status_update("Switch is already off. Nothing to do.")
             return
-        # get first reliable power record
-        _status_update("Requesting current power data...") 
-
-        power_record = self.get_reliable_power_record()
-        _power_update(power_record, initial=True)
-        # check if smart plug is idle with near optimal latency
-        switch_is_on = self.turn_off_if_idle(power_record,latency_threshold=ideal_latency)
-        _power_off_update(switch_is_on)
-
-        # start detection loop
-        # set initial base time of detection loop to latest power record time
-        base_time = power_record['record time']
-        # initialize parameters to adjust base time for detection
-        latency_threshold = ideal_latency
-        minimal_latency = power_record['latency']
-        offset = 0
-        lower_bound = -1
-        increment = 1/4
-        precision_is_low = (increment > 10**(-cycle_detection_precision))
-        _status_update("Optimizing latency...")
+        # start monitoring power consumption
+        status_update("Monitoring power consumption..." + "\n" + "-" * WIDTH)
+        power_monitor = []
         while switch_is_on:
-            # get next power record
-            power_record = self.get_next_power_record(base_time)
-            _power_update(power_record)
-            # extract information
-            record_time = power_record['record time']
-            latency = power_record['latency']
-            if 0 <= latency < minimal_latency:
-                minimal_latency = latency
-            # check if smart plug is reported idle with allowed latency, if so, turn off
-            switch_is_on = self.turn_off_if_idle(power_record,latency_threshold)
-            _power_off_update(switch_is_on)
-            # adjust parameters if needed
-            # at this point the latency should be between 0 and 12.5 seconds
-            # latency 10 or higher indicates that the request was sent too soon
-            if 9 < latency < 12.5 or 0 > latency > -0.5:
-                # adjust offset and its lower bound accordingly
-                lower_bound = max([offset,lower_bound])
-                offset += increment
-            # in case of reasonably low latency, keep the lower bound, and reduce
-            # the offset. 
-            elif 0 < latency < 2.5:
-                precision_can_be_increased = ((offset - increment) == lower_bound)
-                precision_is_low = (increment > 10**(-cycle_detection_precision))
-                if precision_is_low and precision_can_be_increased:
-                    increment /= 2
-                if (offset - increment) > lower_bound:
-                    offset -= increment
-            # in all other cases, something went wrong and the offset is reset to 0
-            else:
-                offset = 0
-            if not precision_is_low:
-                latency_threshold = minimal_latency + 0.25
-            # update the base time of the detection cycle
-            base_time = nudge_timestamp(record_time,seconds=offset)
-
-    def turn_off_when_idle_low_latency(self, cycle_detection_precision=0.1, idle_cycles_required=2, save_log=False):
-        def update_log_file(power_record):
-            power_log = [power_record]
-            # make sure 'logs' subdirectory exists
-            os.makedirs('logs', exist_ok=True)
-            # parse log file name
-            yyyymm = datetime.datetime.now().strftime("%Y-%m")
-            log_file = f'logs/sb4dfritz_turnoffwhenidle_log_{yyyymm}.csv'
-            # check if log_file doesn't exists; if not, write csv header
-            file_exists = os.path.isfile(log_file)
-            csv_cols = power_log[0].keys()
-            with open(log_file, 'a', newline='', encoding='utf-8') as csvfile:
-                writer = csv.DictWriter(csvfile, fieldnames=csv_cols)
-                if not file_exists:
-                    writer.writeheader()
-                # Write data rows
-                writer.writerows(power_log)
-        print("-"*80)
-        print("Optimizing latency for power value readouts...")
-        print("-"*80)
-        # initialize utility variables
-        iterations = -1
-        power_log = []
-        latencies = []
-        offset = 1
-        good_offsets = {3}
-        bad_offsets = {-1}
-        offset_gap = min(good_offsets) - max(bad_offsets)
-        ### FIRST LOOP - establish power read out request cycle with low latency ###
-        while offset_gap > cycle_detection_precision:
-            # update counter
-            iterations += 1
-            # get power record
-            if iterations == 0:
-                power_record = self.get_reliable_power_record()
-                measure_cycle_base_time = power_record['record time']
-                request_cycle_base_time = measure_cycle_base_time
-            else:
-                request_cycle_base_time = nudge_timestamp(measure_cycle_base_time,offset)
-                power_record = self.get_next_power_record(request_cycle_base_time)
-            # update log 
-            power_record['base time'] = request_cycle_base_time
-            power_record['offset'] = offset
-            power_record['device'] = self.DeviceName
-            power_log.append(power_record)
-            # save log to 'logs/sb4dfritz_turnoffwhenidle_log_YYYY-MM.csv'
-            if save_log:
-                update_log_file(power_record)
-            # extract time parameters for console output
-            request_time = power_record['request time']
-            response_time = power_record['response time']
-            record_time = power_record['record time']
-            # extract latency and store separately
-            latency = power_record['latency']
-            latencies.append(latency)
-            duration = power_record['duration']
-            power = power_record['power']
-            # categorize current offset
-            if iterations > 0 and latency >= 10:
-                bad_offsets.add(offset)
-            if iterations > 0 and 0 <= latency < 10:
-                good_offsets.add(offset + cycle_detection_precision / 2)
-            # good_offsets.difference_update(bad_offsets)
-            good_offsets = set([t for t in good_offsets if t > max(bad_offsets)])
-            # print(f"Base Time: {request_cycle_base_time} | Response: {response_time} | Record: {record_time} | Latency: {latency:5.2f} | Offset: {offset:6.3f}")
-            # print(f"    bad offsets -> {sorted(bad_offsets)}, {sorted(good_offsets)} <- good offsets")
-            print(f"({iterations}) Power: {power:7.2f} W | Latency: {latency:5.2f} s | Response Time: {duration:4.2f} s | Offset: {offset:6.3f} s | Gap: {offset_gap:6.3f}")
-            # update offset
-            offset_gap = min(good_offsets) - max(bad_offsets)
-            assert offset_gap > 0, "Negative gap!"
-            if offset_gap > cycle_detection_precision:
-                offset = (min(good_offsets) + max(bad_offsets)) / 2
-            else:
-                offset = min(good_offsets)
-        print("-"*80)
-        print("Latency optimized. Switching off if devices are idle...")
-        print("-"*80)
-        request_cycle_base_time = nudge_timestamp(measure_cycle_base_time,offset)
-        idle_count = 0
-        ### SECOND LOOP - turn off when idle ###
-        while True:
-            # update counter
-            iterations += 1
-            # get next power read out
-            power_record = self.get_next_power_record(request_cycle_base_time)
-            # update power log
-            power_record['base time'] = request_cycle_base_time
-            power_record['offset'] = offset
-            power_record['device'] = self.DeviceName
-            power_log.append(power_record)
-            # save log to 'logs/sb4dfritz_turnoffwhenidle_log_YYYY-MM.csv'
-            if save_log:
-                update_log_file(power_record)
-            # extract information for concole output
-            power = power_record['power']
-            latency = power_record['latency']
-            # adjust offset if needed
-            if latency > 10:
-                offset += cycle_detection_precision
-                request_cycle_base_time = nudge_timestamp(measure_cycle_base_time,offset)
-            print(f"({iterations}) Power: {power:7.2f} W | Latency: {latency:5.2f} s | Response Time: {duration:4.2f} s | Offset: {offset:6.3f} s")
-            # count idle cycles and turn off if requirement is met
-            if power < self.idle_threshold and 0 <= latency < 5:
-                idle_count += 1
-            else:
-                idle_count = 0
-            if idle_count == idle_cycles_required:
-                self.set_switch(False)
-                break
-        print("-"*80)
-        print(f"{self.DeviceName} was switched off.")
-        print("-"*80)
-        return power_log
-
-##  SOME HELPER FUNCTIONS  ##
-
-def nudge_timestamp(timestamp,seconds):
-    """Nudges a timestamp by a given number of seconds."""
-    # create timedelta from seconds
-    timedelta= datetime.timedelta(seconds=seconds)
-    # add timedelta to timestamp
-    nudged_timestamp = timestamp + timedelta
-    return nudged_timestamp
-
-def print_timestamp(timestamp, dig=None):
-    """Convert timestamp to a string in the format HH:MM:SS.digits with 
-    digits controlling the number of digits for the seconds value."""
-    try:
-        if dig == 0:
-            time_string = timestamp.strftime("%H:%M:%S")
-        elif 0 < dig <=6:
-            time_string = timestamp.strftime("%H:%M:%S.%f")[:dig-6]
-    except:
-        time_string = timestamp.strftime("%H:%M:%S.%f")
-    return time_string
-
-# NOTE: This script is not meant to be executed by itself.
-# The following is just for testing during development.
-if __name__ == "__main__":
-    print("Trying to get list of smart plugs...")
-    fritzbox = FritzBoxSession()
-    plugs = fritzbox.getSmartPlugs()
-    print("The following smart plugs were detected:")
-    for plug in plugs:
-        print(plug)
-    
-    plugs[1].turn_off_when_idle_low_latency(save_log=True)
-
-    
-
-
-    # # Write to CSV file
-    # power_log = [plugs[0].get_latest_power_record()]
-    # yyyymm = datetime.datetime.now().strftime("%Y-%m")
-    # os.makedirs('logs', exist_ok=True)
-    # log_file = f'logs/log_test_{yyyymm}.csv'
-    # # check if log_file doesn't exists; if not, write csv header
-    # file_exists = os.path.isfile(log_file)
-    # csv_cols = power_log[0].keys()
-    # with open(log_file, 'a', newline='') as csvfile:
-    #     writer = csv.DictWriter(csvfile, fieldnames=csv_cols)
-    #     if not file_exists:
-    #         writer.writeheader()
-    #     # Write data rows
-    #     writer.writerows(power_log)
-
+            # get the latest power measurement
+            data = self.get_latest_power_record()
+            # add to power_monitor on first pass or if 'datatime' jumps
+            L = len(power_monitor)
+            if L == 0 or data['datatime'] != power_monitor[-1]['datatime']:
+                power_monitor.append(data)
+                log_data(data)
+                status_update(
+                    "Power: {:7.2f} W | Duration: {:5.2f} s | Latency: {:5.2f} s".format(
+                        data['power'], 
+                        data['duration'], 
+                        data['latency'], 
+                    )
+                )
+            # check the last measurements for idle status
+            # NOTE: the very first measurement might be unreliable
+            if L > idle_cycles:
+                last_measurements = power_monitor[-idle_cycles:]
+                last_power_vals = [data['power'] for data in last_measurements]
+                last_durations = [data['duration'] for data in last_measurements]
+                last_latencies = [data['latency'] for data in last_measurements]
+                appliances_are_idle = \
+                    max(last_power_vals) < power_threshold and \
+                    max(last_durations) < network_threshold
+                if appliances_are_idle:
+                    status_update(
+                        "-" * WIDTH + "\n" + "Idle state detected. Switching off..."
+                    )
+                    if debug_mode:
+                        switch_is_on = False
+                    else:
+                        switch_is_on = self.set_switch(False)
     

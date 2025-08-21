@@ -3,6 +3,8 @@
 *.bat
 avm_resources/
 logs/
+sb4dfritzlib_dev.py
+DIARY--2025-08-20--introducing_sb4dfritzlib.ipynb
 # ----------------
 
 # Byte-compiled / optimized / DLL files

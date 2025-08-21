@@ -1,1 +1,0 @@
-python sb4dfritz_turnoffwhenidle.py -optimized_log
