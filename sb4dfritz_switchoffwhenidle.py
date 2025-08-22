@@ -63,16 +63,16 @@ def main(width=WIDTH, debug_mode=False):
     # ask to run again
     while True:
         user_input = input(
-            "Would you like to switch off another smart plug? (y/n)\n" \
-            "Enter 'y' for yes or 'n' for no: "
-        )
-        if user_input == "y":
+            "Would you like to switch off another smart plug? (Y/N)\n" \
+            "Enter 'Y' for yes or 'N' for no: "
+        ).upper()
+        if user_input == "Y":
             main(debug_mode=debug_mode)
-        elif user_input == "n":
+        elif user_input == "N":
             print("")
             return
         else:
-            print("Please enter 'y' for yes or 'n' for no.")
+            print("Please enter 'Y' for yes or 'N' for no.")
 
 def verify_user_input(user_input:str,bound:int)->bool:
     """Checks if user_input is an integer between 1 and the given bound."""
