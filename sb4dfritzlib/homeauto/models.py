@@ -119,9 +119,9 @@ class HomeAutoDevice():
                 power_monitor.append(data)
                 log_data(data)
                 status_update(
-                    "Power: {:7.2f} W | Duration: {:5.2f} s | Latency: {:5.2f} s".format(
-                        data['power'], 
+                    "Request Duration: {:5.2f} s | Power: {:7.2f} W | Latency: {:5.2f} s".format(
                         data['duration'], 
+                        data['power'], 
                         data['latency'], 
                     )
                 )

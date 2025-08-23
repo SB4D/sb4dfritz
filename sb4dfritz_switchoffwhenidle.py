@@ -45,11 +45,13 @@ def main(width=WIDTH, debug_mode=False):
         print(f"  ({idx+1}) {plug.name}")
     print("")
     # Ask user which smart plug should be switched off
-    input_verified = False
     print("Which device would you like to switch off?")
+    input_verified = False
     while not input_verified:
-        user_input = input(f"Enter a number: ")
-        input_verified = verify_user_input(user_input, num_of_plugs)
+        user_input = input(f"Press 'Enter' for (1) or choose a number: ")
+        if user_input == "":
+            user_input = 1
+        input_verified = verify_input(user_input, num_of_plugs)
     # Process user input
     plug_idx = int(user_input) - 1
     plug = active_plugs[plug_idx]
@@ -64,17 +66,15 @@ def main(width=WIDTH, debug_mode=False):
     while True:
         user_input = input(
             "Would you like to switch off another smart plug? (Y/N)\n" \
-            "Enter 'Y' for yes or 'N' for no: "
+            "Enter 'Y' for yes or anything else to exit: "
         ).upper()
         if user_input == "Y":
             main(debug_mode=debug_mode)
-        elif user_input == "N":
+        else:
             print("")
             return
-        else:
-            print("Please enter 'Y' for yes or 'N' for no.")
 
-def verify_user_input(user_input:str,bound:int)->bool:
+def verify_input(user_input:str,bound:int)->bool:
     """Checks if user_input is an integer between 1 and the given bound."""
     input_ok = False 
     try:
