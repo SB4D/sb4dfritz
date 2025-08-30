@@ -36,9 +36,10 @@ def main(width=WIDTH, debug_mode=False):
     # Connect to FRITZ!Box router
     FRITZ_USER = FritzUser(USER, PWD, IP)
     fritzbox = HomeAutoSystem(FRITZ_USER)
-    # Get list and count of active smart plugs
+    # Get list and count of active smart plugs ordered alphabetically by name
     smart_plugs = [device for device in fritzbox.devices if device.is_switchable]
     active_plugs = [plug for plug in smart_plugs if plug.get_switch_state()]
+    active_plugs.sort(key=lambda plug: plug.name.lower())
     num_of_plugs = len(active_plugs)
     print("The following smart plugs were detected:\n")
     for idx, plug in enumerate(active_plugs):
