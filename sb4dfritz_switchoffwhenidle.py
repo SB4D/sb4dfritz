@@ -9,8 +9,9 @@ __version__     = "0.4"
 # from sb4dfritz import FritzBoxSession, SmartPlug
 from sb4dfritzlib.connection import FritzUser
 from sb4dfritzlib.homeauto import HomeAutoSystem
-import argparse
 import json
+import os
+import argparse
 
 # load config file
 CONFIG_FILE = "..\\..\\_private_files\\sb4dfritz_secrets.ini"
@@ -24,7 +25,7 @@ PWD = CONFIG['login']['pwd']
 WIDTH = 80
 
 
-def main(width=WIDTH, debug_mode=False):
+def main(width=WIDTH, write_log=False, debug_mode=False):
     """The main routine"""
     # Print intro
     print("")
@@ -57,12 +58,15 @@ def main(width=WIDTH, debug_mode=False):
     plug_idx = int(user_input) - 1
     plug = active_plugs[plug_idx]
     print("-"*width)
-    # turn off when idle
-    plug.switch_off_when_idle(
+    # turn off when idle and get power records
+    power_records = plug.switch_off_when_idle(
         status_messages='console', 
         debug_mode=debug_mode)
     print("="*width)
     print("")
+    # write log if something is weird
+    if write_log:
+        log_power_records(power_records)
     # ask to run again
     while True:
         user_input = input(
@@ -90,20 +94,48 @@ def verify_input(user_input:str,bound:int)->bool:
         print(f"Input invalid. Please enter a number between 1 and {bound}.")
     return input_ok
 
+def log_power_records(power_records:list[dict], log_file:str="logs/switchoffwhenidle.log")->None:
+    """Write list of power records to log file in csv format if the 
+    minimal latency is either negative or over 2 seconds. """
+    # # check latencies, only log if minimum is not between 0 and 2 seconds
+    # latencies = [record['latency'] for record in power_records]
+    # if 0 <= min(latencies) < 2:
+    #     return
+    # check if log_file exists, if not create it and write header
+    if not os.path.exists(log_file):
+        os.makedirs(os.path.dirname(log_file), exist_ok=True)
+        with open(log_file, "w") as f:
+            f.write("date,starttime,datatime,endtime,duration,latency,power\n")
+    # write records to the log file
+    with open(log_file, "a") as file:
+        for record in power_records:
+            record_str = ",".join([
+                record['starttime'].strftime("%Y-%m-%d,%H:%M:%S.%f")[:-4],
+                record['datatime'].strftime("%H:%M:%S"),
+                record['endtime'].strftime("%H:%M:%S.%f")[:-4],
+                f"{record['duration']:0.2f}",
+                f"{record['latency']:0.2f}",
+                f"{record['power']:0.2f}",
+            ])
+            file.write(record_str + "\n")
+
 
 if __name__ == "__main__":
     # define command line options
     parser = argparse.ArgumentParser(
         description = \
             "SwitchOffWhenIdle can run in normal mode or in debug mode." \
-            "The latter does runs the algorithm, but does not switch off the device."
+            "The latter runs the algorithm, but does not switch off the device."
     )
     group = parser.add_mutually_exclusive_group()
     group.add_argument("-debug", action="store_true", help="Run in debug mode")
+    group.add_argument("-log", action="store_true", help="Write power records to log file.")
     args = parser.parse_args()
 
     # handle command line options
     if args.debug:
         main(debug_mode=True)
+    elif args.log:
+        main(write_log=True,)
     else:
         main()  # default option

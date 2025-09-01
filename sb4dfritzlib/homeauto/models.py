@@ -143,6 +143,8 @@ class HomeAutoDevice():
                         switch_is_on = False
                     else:
                         switch_is_on = self.set_switch(False)
+        # return power records for logging (discard first record)
+        return power_monitor[1:]
     
     def get_basic_device_stats(self):
         """Get statisticts (temperature, energy, power, ...) recorded 
