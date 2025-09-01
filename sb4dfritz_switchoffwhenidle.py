@@ -2,9 +2,15 @@
 A script to safely turn off FRITZ!DECT smart plugs connected to a FRITZ!Box. 
 Repeatedly checks whether the connected devices are idle and only turns off in 
 that case. 
+
+CHANGELOG:
+0.4.1: added logging option (-log).
+0.4.1: minor cosmetic changes in console interaction
+0.4: complete rewrite
+0.4: code self-contained (no longer relies on fritzconnection)
 """
 __author__      = "Stefan Behrens"
-__version__     = "0.4"
+__version__     = "0.4.1"
 
 # from sb4dfritz import FritzBoxSession, SmartPlug
 from sb4dfritzlib.connection import FritzUser
