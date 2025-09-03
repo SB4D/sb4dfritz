@@ -103,10 +103,10 @@ def verify_input(user_input:str,bound:int)->bool:
 def log_power_records(power_records:list[dict], log_file:str="logs/switchoffwhenidle.log")->None:
     """Write list of power records to log file in csv format if the 
     minimal latency is either negative or over 2 seconds. """
-    # # check latencies, only log if minimum is not between 0 and 2 seconds
-    # latencies = [record['latency'] for record in power_records]
-    # if 0 <= min(latencies) < 2:
-    #     return
+    # check latencies, only log if minimum is not between 0 and 2 seconds
+    latencies = [record['latency'] for record in power_records]
+    if 0 <= min(latencies) < 2:
+        return
     # check if log_file exists, if not create it and write header
     if not os.path.exists(log_file):
         os.makedirs(os.path.dirname(log_file), exist_ok=True)
@@ -140,8 +140,8 @@ if __name__ == "__main__":
 
     # handle command line options
     if args.debug:
-        main(debug_mode=True)
+        main(debug_mode=True, write_log=True)
     elif args.log:
-        main(write_log=True,)
+        main(write_log=True)
     else:
         main()  # default option
