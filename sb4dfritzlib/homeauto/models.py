@@ -109,25 +109,25 @@ class HomeAutoDevice():
             return
         # start monitoring power consumption
         status_update("Monitoring power consumption..." + "\n" + "-" * WIDTH)
-        power_monitor = []
+        # get initial power measurement (and wake up device)
+        power_monitor = [self.get_latest_power_record()]
         while switch_is_on:
             # get the latest power measurement
             data = self.get_latest_power_record()
-            # add to power_monitor on first pass or if 'datatime' jumps
-            L = len(power_monitor)
-            if L == 0 or data['datatime'] != power_monitor[-1]['datatime']:
+            # add to power_monitor if 'datatime' jumps
+            if data['datatime'] != power_monitor[-1]['datatime']:
                 power_monitor.append(data)
                 log_data(data)
                 status_update(
-                    "Power: {:7.2f} W | Duration: {:5.2f} s | Latency: {:5.2f} s".format(
-                        data['power'], 
+                    "Request Duration: {:5.2f} s | Power: {:7.2f} W | Latency: {:5.2f} s".format(
                         data['duration'], 
+                        data['power'], 
                         data['latency'], 
                     )
                 )
             # check the last measurements for idle status
             # NOTE: the very first measurement might be unreliable
-            if L > idle_cycles:
+            if len(power_monitor) > idle_cycles:
                 last_measurements = power_monitor[-idle_cycles:]
                 last_power_vals = [data['power'] for data in last_measurements]
                 last_durations = [data['duration'] for data in last_measurements]
@@ -143,6 +143,8 @@ class HomeAutoDevice():
                         switch_is_on = False
                     else:
                         switch_is_on = self.set_switch(False)
+        # return power records for logging (discard first record)
+        return power_monitor[1:]
     
     def get_basic_device_stats(self):
         """Get statisticts (temperature, energy, power, ...) recorded 

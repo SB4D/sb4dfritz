@@ -7,4 +7,4 @@ This is mainly a learning project for object oriented programming and network co
 * The script `sb4dfritz_test.py` provides virtual simulations of electrical appliances connected to AVM FRITZ! smart plugs.
 * In progress: `sb4dfritzlib` is a self-written library meant to replace `fritzconnection` in future versions. 
 
-`sb4dfritzlib` already implements the TR-064 and AHA-HTTP interfaces provided by AVM. I plan to add further functionality, icluding a simple method to toggle between automatic and manual switching. Since the latter is not available via the official APIs, a certain amount of trickery is needed (essentially reverse engineering the behavior of the web-interface). 
+`sb4dfritzlib` already implements the TR-064 and AHA-HTTP interfaces provided by AVM. I plan to add further functionality, icluding a simple method to toggle between automatic and manual switching. Since the latter is not available via the official APIs, a certain amount of trickery is needed (essentially reverse engineering the behavior of the web-interface).
