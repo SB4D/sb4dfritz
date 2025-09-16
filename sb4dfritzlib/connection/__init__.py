@@ -7,4 +7,4 @@ from . import tr064
 # AHA-HTTP Interface
 from . import ahahttp
 from . import session
-from .session import FritzUser, FritzBoxSession
+from .session import FritzBoxSession

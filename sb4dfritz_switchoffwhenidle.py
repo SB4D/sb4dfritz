@@ -13,7 +13,7 @@ __author__      = "Stefan Behrens"
 __version__     = "0.4.1"
 
 # from sb4dfritz import FritzBoxSession, SmartPlug
-from sb4dfritzlib.connection import FritzUser
+# from sb4dfritzlib.connection import FritzUser
 from sb4dfritzlib.homeauto import HomeAutoSystem
 import json
 import os
@@ -40,11 +40,10 @@ def main(width=WIDTH, write_log=False, debug_mode=False):
     print("="*width)
     print("Connecting to FRITZ!Box to obtain list of running smart plugs...")
     print("-"*width)
-    # Connect to FRITZ!Box router
-    FRITZ_USER = FritzUser(USER, PWD, IP)
-    fritzbox = HomeAutoSystem(FRITZ_USER)
+    # Connect to home automation system
+    homeauto = HomeAutoSystem(USER, PWD, IP)
     # Get list and count of active smart plugs ordered alphabetically by name
-    smart_plugs = [device for device in fritzbox.devices if device.is_switchable]
+    smart_plugs = [device for device in homeauto.devices if device.is_switchable]
     active_plugs = [plug for plug in smart_plugs if plug.get_switch_state()]
     active_plugs.sort(key=lambda plug: plug.name.lower())
     num_of_plugs = len(active_plugs)
