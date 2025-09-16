@@ -181,6 +181,6 @@ if __name__ == "__main__":
     if args.debug:
         SwitchOffWhenIdle(debug_mode=True, logging=True).run()
     elif args.log:
-        SwitchOffWhenIdle(write_log=True).run()
+        SwitchOffWhenIdle(logging=True).run()
     else:
         SwitchOffWhenIdle().run()  # default option
