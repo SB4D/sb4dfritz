@@ -4,6 +4,7 @@ Repeatedly checks whether the connected devices are idle and only turns off in
 that case. 
 
 CHANGELOG:
+0.4.3: asking for a second device improved
 0.4.2: minor changes required by updates in sb4dfritzlib
 0.4.1: added logging option (-log).
 0.4.1: minor cosmetic changes in console interaction
@@ -11,9 +12,9 @@ CHANGELOG:
 0.4: code self-contained (no longer relies on fritzconnection)
 """
 __author__      = "Stefan Behrens"
-__version__     = "0.4.2"
+__version__     = "0.4.3"
 
-from sb4dfritzlib.homeauto import HomeAutoSystem
+from sb4dfritzlib.homeauto import HomeAutoSystem, HomeAutoDevice
 import json
 import os
 import argparse
@@ -30,58 +31,98 @@ IP = CONFIG['login']['ip']
 WIDTH = 80
 
 
-def main(width=WIDTH, write_log=False, debug_mode=False):
-    """The main routine"""
-    # Print intro
-    print("")
-    print("="*width)
-    print(f"{' SB4DFRITZ - SWITCH OFF WHEN IDLE ':{'='}^{width}}")
-    print("="*width)
-    print("Connecting to FRITZ!Box to obtain list of running smart plugs...")
-    print("-"*width)
-    # Connect to home automation system
-    homeauto = HomeAutoSystem(USER, PWD, IP)
-    # Get list and count of active smart plugs ordered alphabetically by name
-    smart_plugs = [device for device in homeauto.devices if device.is_switchable]
-    active_plugs = [plug for plug in smart_plugs if plug.get_switch_state()]
-    active_plugs.sort(key=lambda plug: plug.name.lower())
-    num_of_plugs = len(active_plugs)
-    print("The following smart plugs were detected:\n")
-    for idx, plug in enumerate(active_plugs):
-        print(f"  ({idx+1}) {plug.name}")
-    print("")
-    # Ask user which smart plug should be switched off
-    print("Which device would you like to switch off?")
-    input_verified = False
-    while not input_verified:
-        user_input = input(f"Press 'Enter' for (1) or choose a number: ")
-        if user_input == "":
-            user_input = 1
-        input_verified = verify_input(user_input, num_of_plugs)
-    # Process user input
-    plug_idx = int(user_input) - 1
-    plug = active_plugs[plug_idx]
-    print("-"*width)
-    # turn off when idle and get power records
-    power_records = plug.switch_off_when_idle(
-        status_messages='console', 
-        debug_mode=debug_mode)
-    print("="*width)
-    print("")
-    # write log if something is weird
-    if write_log:
-        log_power_records(power_records)
-    # ask to run again
-    while True:
-        user_input = input(
-            "Would you like to switch off another smart plug? (Y/N)\n" \
-            "Enter 'Y' for yes or anything else to exit: "
-        ).upper()
-        if user_input == "Y":
-            main(debug_mode=debug_mode)
-        else:
-            print("")
-            return
+class SwitchOffWhenIdle():
+    """"""
+
+    def __init__(self, width:int=80, logging:bool=False, debug_mode:bool=False):
+        self.width = width
+        self.logging = logging
+        self.debug_mode = debug_mode
+        self.homeauto:HomeAutoSystem = None
+        self.smart_plugs:list[HomeAutoDevice] = None
+    
+    def run(self):
+        """Run main program."""
+        self.intro()
+        self.connect()
+        self.switch_off_routine()
+
+    def intro(self):
+        """Run program intro."""
+        width = self.width
+        # Print intro
+        print("")
+        print("="*width)
+        print(f"{' SB4DFRITZ - SWITCH OFF WHEN IDLE ':{'='}^{width}}")
+        print("="*width)
+        print("Connecting to FRITZ!Box to obtain list of running smart plugs...")
+        print("-"*width)
+    
+    def connect(self):
+        """Connect to home automation system and get list of connected smart plugs."""
+        self.homeauto = HomeAutoSystem(USER, PWD, IP)
+        self.smart_plugs = [dev for dev in self.homeauto.devices if dev.is_switchable]
+
+    def switch_off_routine(self):
+        """Run main routine: Ask user which active plug should be switched off, wait 
+        for the plug to be idle, switch it off, and ask if another switch should be
+        swtiched off."""
+        # ask user which plug should be switched off
+        plug = self.get_user_input()
+        # switch off when idle and get power records
+        power_records = plug.switch_off_when_idle(
+            status_messages='console', 
+            debug_mode=self.debug_mode)
+        # print separator
+        print("="*self.width)
+        print("")
+        # write log if something is weird
+        if self.logging:
+            log_power_records(power_records)
+        # ask to run again
+        while True:
+            user_input = input(
+                "Would you like to switch off another smart plug? (Y/N)\n" \
+                "Enter 'Y' for yes or anything else to exit: "
+            ).upper()
+            if user_input == "Y":
+                # print separator
+                print("-"*self.width)
+                self.switch_off_routine()
+            else:
+                print("")
+                return
+    
+    def get_active_plugs(self):
+        # make sure a connection has been established
+        if not self.smart_plugs:
+            self.connect()
+        # Get list and count of active smart plugs ordered alphabetically by name
+        active_plugs = [plug for plug in self.smart_plugs if plug.get_switch_state()]
+        active_plugs.sort(key=lambda plug: plug.name.lower())
+        return active_plugs
+    
+    def get_user_input(self):
+        active_plugs = self.get_active_plugs()
+        num_of_plugs = len(active_plugs)
+        print("The following smart plugs were detected:\n")
+        for idx, plug in enumerate(active_plugs):
+            print(f"  ({idx+1}) {plug.name}")
+        print("")
+        # Ask user which smart plug should be switched off
+        print("Which device would you like to switch off?")
+        input_verified = False
+        while not input_verified:
+            user_input = input(f"Press 'Enter' for (1) or choose a number: ")
+            if user_input == "":
+                user_input = 1
+            input_verified = verify_input(user_input, num_of_plugs)
+        # Process user input
+        plug_idx = int(user_input) - 1
+        plug = active_plugs[plug_idx]
+        print("-"*self.width)
+        return plug
+
 
 def verify_input(user_input:str,bound:int)->bool:
     """Checks if user_input is an integer between 1 and the given bound."""
@@ -138,8 +179,8 @@ if __name__ == "__main__":
 
     # handle command line options
     if args.debug:
-        main(debug_mode=True, write_log=True)
+        SwitchOffWhenIdle(debug_mode=True, logging=True).run()
     elif args.log:
-        main(write_log=True)
+        SwitchOffWhenIdle(write_log=True).run()
     else:
-        main()  # default option
+        SwitchOffWhenIdle().run()  # default option
