@@ -59,7 +59,7 @@ class HomeAutoDevice():
     def switch_off_when_idle(
             self, 
             power_threshold:float=5,
-            network_threshold:float=0.9,
+            network_threshold:float=0.95,
             idle_cycles:int=2,
             status_messages:str=None,
             log_file:str=None,

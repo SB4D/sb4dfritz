@@ -2,7 +2,7 @@
 # Project specific
 avm_resources/
 logs/
-*_dev.*
+*_dev*
 *.bat
 # ----------------
 
