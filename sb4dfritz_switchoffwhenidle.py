@@ -4,16 +4,15 @@ Repeatedly checks whether the connected devices are idle and only turns off in
 that case. 
 
 CHANGELOG:
+0.4.2: minor changes required by updates in sb4dfritzlib
 0.4.1: added logging option (-log).
 0.4.1: minor cosmetic changes in console interaction
 0.4: complete rewrite
 0.4: code self-contained (no longer relies on fritzconnection)
 """
 __author__      = "Stefan Behrens"
-__version__     = "0.4.1"
+__version__     = "0.4.2"
 
-# from sb4dfritz import FritzBoxSession, SmartPlug
-# from sb4dfritzlib.connection import FritzUser
 from sb4dfritzlib.homeauto import HomeAutoSystem
 import json
 import os
@@ -24,9 +23,9 @@ CONFIG_FILE = "..\\..\\_private_files\\sb4dfritz_secrets.ini"
 with open(CONFIG_FILE,"r") as file:
     CONFIG = json.load(file)
 # extract login data
-IP = CONFIG['login']['ip']
 USER = CONFIG['login']['user']
 PWD = CONFIG['login']['pwd']
+IP = CONFIG['login']['ip']
 # width of console interface
 WIDTH = 80
 
