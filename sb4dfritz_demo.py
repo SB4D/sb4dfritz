@@ -1,5 +1,4 @@
-from sb4dfritz import SmartPlug
-from sb4dfritz_test import SmartPlugSimulator
+from sb4dfritzlib.homeauto.simulations import SmartPlugSimulator
 from time import sleep
 
 if __name__ == "__main__":
@@ -25,8 +24,7 @@ information. In fact, the power consumption is only provided every 10 seconds.
     print(intro_text)
     print(hline)
     sleep(5)
-    appliance_simulation = SmartPlugSimulator()
-    smartplug_simulation = SmartPlug(appliance_simulation)
+    smartplug_simulation = SmartPlugSimulator(name="Smart Plug Simulation")
     print("\nStarting simulation...\n")
     print(hline)
     sleep(5)

@@ -5,20 +5,14 @@ import threading
 from threading import Thread
 from time import sleep
 
-class FritzUser():
-    
-    def __init__(self, user, pwd, ip):
-        self.user = user 
-        self.pwd = pwd 
-        self.ip = ip 
 
 class FritzBoxSession():
 
-    def __init__(self, fritz_user):
+    def __init__(self, user, pwd, ip):
         # extract login data
-        self.user = fritz_user.user
-        self.pwd = fritz_user.pwd
-        self.ip = fritz_user.ip
+        self.user = user
+        self.pwd = pwd
+        self.ip = ip
         # get initial sid
         self.sid = self.get_sid()
         # run daemon thread to keep valid sid

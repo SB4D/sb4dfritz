@@ -1,10 +1,32 @@
-from sb4dfritz import SmartPlug
+from .devicemodels import HomeAutoDevice, HomeAutoSystem
+import random
 from time import sleep
 from datetime import datetime, timedelta
-import random
 from scipy.stats import skewnorm
 import threading
 
+
+def choose_random_string_of_integers(length:int)->str:
+    random_integers = [random.randint(0, 9) for _ in range(length)]
+    integer_string = ''.join(str(num) for num in random_integers)
+    return integer_string
+
+def generate_random_boolean():
+    random_bool = random.choice([True, False])
+    return random_bool
+
+def generate_fake_sid():
+    fake_sid = choose_random_string_of_integers(16)
+    return fake_sid
+
+def generate_fake_ain():
+    # generate first five numbers
+    fake_ain = choose_random_string_of_integers(5)
+    # add space
+    fake_ain += " "
+    # generate remaining seven numbers
+    fake_ain += choose_random_string_of_integers(7)
+    return fake_ain
 
 def add_network_latency(one_way=True):
     """Simulates network latency by sampling from a skew normal distribution."""
@@ -19,43 +41,95 @@ def add_network_latency(one_way=True):
     sleep(latency)
 
 
+class SmartPlugSimulator(HomeAutoDevice):
+
+    def __init__(self, name="Smart Home Simulator", id=None):
+        # shared with HomeAutomationDevice
+        self.sid = generate_fake_sid()
+        self.ain = generate_fake_ain()
+        self.name = name
+        self.model = "Smart Plug Simulator"
+        self.device_id = id if id else random.randint(1,16)
+        # needed for simulation
+        self.is_switchable = True
+        self.__switch_state = True
+        self.sensor:MeasurementSimulator = MeasurementSimulator()
+    
+    def get_switch_state(self)->bool:
+        """Get current switch state (on=True ,off=False)."""
+        return self.__switch_state
+
+    def set_switch(self, state:bool)->bool:
+        """Set switch state if switchable (on=True ,off=False)."""
+        self.__switch_state = state 
+        return state
+
+    def toggle_switch(self)->bool:
+        """Toggle switch state if switchable."""
+        current_state = self.get_switch_state()
+        new_state = not current_state
+        self.__switch_state = new_state
+        return self.get_switch_state()
+    
+    def get_basic_device_stats(self):
+        # add a bit of latency
+        add_network_latency()
+        # send request for device stats
+        return self.sensor.send_basic_device_stats()
+
+
+
+class HomeAutoSystemSimulator(HomeAutoSystem):
+    pass
+
+
+
 # TODO MAKE THIS CODE LOOK MORE PRETTY
 class PowerSimulator:
     """Simulates the power consumption of my coffee machine."""
-    def __init__(self):
-        self.regions = {
-            "idle": (250, 350),
-            "mid": (75000, 85000),
-            "high": (125000, 135000)
-        }
 
-        self.stickiness_by_region = {
+    def __init__(self):
+        """Simulates the power consumption of my coffee machine."""
+        # states of power consumption
+        self.states = ["idle", "mid", "high"]
+        # current state (start with "high" consumption)
+        self.current_state = "high"
+        # ranges for power consumption (unit 0.01 W)
+        self.state_ranges = {
+            "idle": (300, 350),         #  3.0 to  3.5 W
+            "mid": (40000, 85000),      #  400 to  850 W
+            "high": (125000, 135000),   # 1250 to 1350 W
+        }
+        # probability to stick to a state
+        self.stickiness_by_state = {
             "idle": 0.7,
             "mid": 0.2,
             "high": 0.6,
         }
-
-        self.weights = [0.6, 0.2, 0.2]
-        self.region_names = ["idle", "mid", "high"]
-
-        self.current_region = random.choices(
-            population=self.region_names,
-            weights=self.weights,
+        # probability that state is chosen
+        self.chances_by_state = {
+            "idle": 0.4,
+            "mid": 0.3,
+            "high": 0.3,
+        }
+    
+    def select_new_state(self):
+        new_region = random.choices(
+            population=self.states,
+            weights=self.chances_by_state.values(),
             k=1
         )[0]
+        return new_region
+
 
     def get_current_power(self):
-        stickiness = self.stickiness_by_region[self.current_region]
+        stickiness = self.stickiness_by_state[self.current_state]
         if random.random() > stickiness:
             # Switch to a new region based on weights
-            self.current_region = random.choices(
-                population=self.region_names,
-                weights=self.weights,
-                k=1
-            )[0]
+            self.current_state = self.select_new_state()
 
         # Generate number in current region
-        low, high = self.regions[self.current_region]
+        low, high = self.state_ranges[self.current_state]
         return random.randint(low, high)
 
 
@@ -80,7 +154,6 @@ class MeasurementSimulator():
         # keep awake after initialization
         self.stay_awake()
     
-    # STATUS THIS IS LOOKING GOOD
     def _generate_basic_device_stats(self):
         # generate template
         device_stats = self._generate_basic_device_stats_template()
@@ -99,7 +172,6 @@ class MeasurementSimulator():
         # pass to the basic_device_stats attribute
         self.basic_device_stats = device_stats
 
-    # TODO THE WAY KEYS ARE DEALT WITH FEELS CLUMSY
     def _generate_basic_device_stats_template(self):
         # designated dictionary keys
         LEVEL_1_KEYS = ['temperature', 'voltage', 'power', 'energy']
@@ -118,7 +190,7 @@ class MeasurementSimulator():
             device_stats[category]['data'] = []
         return device_stats
     
-    # TODO FIND A MORE REALISTIC WAY TO GENERATE RANDOM DATA
+    # TODO consider loading actual sample data
     def _generate_measure_data(self):
         data_categories = ['temperature', 'voltage', 'power', 'energy']
         data = {cat:0 for cat in data_categories}
@@ -188,48 +260,3 @@ class MeasurementSimulator():
     def _go_to_sleep(self):
         with self._lock:
             self.sleeping = True
-
-
-
-class SmartPlugSimulator:
-    """Simulates an instance of HomeAutomationDevice in fritzconnection."""
-
-    def __init__(self, name="Smart Plug Simulator"):
-        # attributes explicitly used by SmartPlug
-        self.DeviceName = name 
-        self.Manufacturer = "SB4D" 
-        self.ProductName = "FRITZ! Smart Plug Simulator"
-        self.identifier = "12345 1234567"
-        # attributes implicitly used by SmartPlug 
-        # by way of the methods below
-        self.__switch_state = True
-        self.sensor:MeasurementSimulator = MeasurementSimulator()
-    
-    def is_switchable(self):
-        """Checks whether a switchable device is simulated."""
-        # Assuming that all devices are smart plugs...
-        return True
-
-    def get_switch_state(self):
-        """Check whether the simulated device's power switch 
-        is on or off."""
-        return self.__switch_state
-    
-    def set_switch(self,target_state:bool):
-        """Sets the power switch state of the simulated device."""
-        self._switch_state = target_state
-    
-    def get_basic_device_stats(self):
-        # add a bit of latency
-        add_network_latency()
-        # send request for device stats
-        return self.sensor.send_basic_device_stats()
-
-
-if __name__ == "__main__":
-    plug_simulator = SmartPlugSimulator()
-
-    simulated_plug = SmartPlug(plug_simulator)
-
-    print(simulated_plug.get_basic_device_stats())
-

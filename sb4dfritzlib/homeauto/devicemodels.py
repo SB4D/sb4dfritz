@@ -1,8 +1,7 @@
 """Provides classes implementing features of speific types of 
 home automation devices"""
 
-# from ..connection import ahahttp, tr064, FritzBoxSession, FritzUser
-from ..connection.session import FritzUser, FritzBoxSession
+from ..connection.session import FritzBoxSession
 from ..connection import ahahttp 
 from ..utilities import bitmask, xml, is_stats_dict, prepare_stats_dict
 from datetime import datetime, timedelta
@@ -60,7 +59,7 @@ class HomeAutoDevice():
     def switch_off_when_idle(
             self, 
             power_threshold:float=5,
-            network_threshold:float=0.9,
+            network_threshold:float=0.95,
             idle_cycles:int=2,
             status_messages:str=None,
             log_file:str=None,
@@ -193,8 +192,8 @@ class HomeAutoDevice():
 #TODO: improve initialization (takes too long)
 class HomeAutoSystem():
 
-    def __init__(self, user:FritzUser):
-        self.session = FritzBoxSession(user)
+    def __init__(self, user, pwd, ip):
+        self.session = FritzBoxSession(user, pwd, ip)
         self.devices = self.get_devices()
     
     def get_devices(self):
