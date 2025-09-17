@@ -3,8 +3,13 @@ home automation devices"""
 
 from ..connection.session import FritzBoxSession
 from ..connection import ahahttp 
-from ..utilities import bitmask, xml, is_stats_dict, prepare_stats_dict
-from datetime import datetime, timedelta
+from ..utilities import bitmask
+from ..utilities import xml
+from ..utilities import is_stats_dict
+from ..utilities import prepare_stats_dict
+from ..utilities import StatusMessenger
+from datetime import datetime
+from datetime import timedelta
 
 
 #TODO: add alternative initialization within `HomeAutoSystem`
@@ -39,7 +44,6 @@ class HomeAutoDevice():
             state = ahahttp.getswitchstate(self.ain, self.sid)
             return bool(state)
 
-
     def set_switch(self, state:bool)->bool:
         """Set switch state if switchable (on=True ,off=False)."""
         if self.is_switchable:
@@ -61,7 +65,7 @@ class HomeAutoDevice():
             power_threshold:float=5,
             network_threshold:float=0.95,
             idle_cycles:int=2,
-            status_messages:str=None,
+            status_messenger:StatusMessenger=None,
             log_file:str=None,
             debug_mode:bool=False
             )->None:
@@ -77,24 +81,17 @@ class HomeAutoDevice():
         - power_threshold : power consumption in idle state (in Watts)
         - network_threshold : tolerated request duration (in seconds)
         - idle_cycles : number of idle measurement cycles required
-        - status_messages : target for status message output
+        - status_messenger : vesseltarget for status message output
         - log_file : path of log file
         - debug_mode : if True, the switch state is not changed
         """
         # width for console output
         WIDTH = 80
         # function to handle status messages
-        def status_update(*args, output_target=status_messages):
-            # available targets and their output functions
-            OUTPUT_TARGETS = {
-                'console' : print,
-            }
-            # check if `target` is admissable
-            if output_target in OUTPUT_TARGETS:
-                # get updater function for `target` 
-                updater = OUTPUT_TARGETS[output_target]
-                # run it on text
-                updater(*args)
+        def status_update(message):
+            if status_messenger:
+                status_messenger(message)
+
         # TODO add logging feature
         def log_data(data, log_file=log_file):
             pass

@@ -4,6 +4,7 @@ Repeatedly checks whether the connected devices are idle and only turns off in
 that case. 
 
 CHANGELOG:
+0.4.4: under the hood changes in status message mechanism
 0.4.3: asking for a second device improved
 0.4.2: minor changes required by updates in sb4dfritzlib
 0.4.1: added logging option (-log).
@@ -12,9 +13,11 @@ CHANGELOG:
 0.4: code self-contained (no longer relies on fritzconnection)
 """
 __author__      = "Stefan Behrens"
-__version__     = "0.4.3"
+__version__     = "0.4.4"
 
-from sb4dfritzlib.homeauto import HomeAutoSystem, HomeAutoDevice
+from sb4dfritzlib.homeauto import HomeAutoSystem
+from sb4dfritzlib.homeauto import HomeAutoDevice
+from sb4dfritzlib.utilities import status_in_console
 import json
 import os
 import argparse
@@ -71,7 +74,7 @@ class SwitchOffWhenIdle():
         plug = self.get_user_input()
         # switch off when idle and get power records
         power_records = plug.switch_off_when_idle(
-            status_messages='console', 
+            status_messenger=status_in_console, 
             debug_mode=self.debug_mode)
         # print separator
         print("="*self.width)
