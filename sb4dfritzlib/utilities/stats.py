@@ -30,8 +30,15 @@ def prepare_stats_dict(stats):
     timestamp = int(stats['datatime'])
     timestamp = datetime.fromtimestamp(timestamp)
     stats['datatime'] = timestamp
-    # convert 'data' to list of integers
-    data = stats['data']
-    data = [int(num) for num in data.split(",")]
-    stats['data'] = data 
+    # convert 'data' csv-string to list of integers
+    data_string = stats['data']
+    data_list = data_string.split(",")
+    # NOTE 2025-10-17: The AHA-HTTP interface started putting '-' 
+    # in some data strings.
+    for idx, val in enumerate(data_list):
+        try:
+            data_list[idx] = int(val)
+        except:
+            data_list[idx] = None if val == '-' else data_list[idx]
+    stats['data'] = data_list
     return stats
