@@ -3,6 +3,7 @@
 avm_resources/
 logs/
 backup/
+pytest.ini
 *_dev*
 *.bat
 # ----------------
