@@ -36,9 +36,9 @@ def prepare_stats_dict(stats):
     # NOTE 2025-10-17: The AHA-HTTP interface started putting '-' 
     # in some data strings.
     for idx, val in enumerate(data_list):
-        try:
+        if val.isnumeric(): 
             data_list[idx] = int(val)
-        except:
-            data_list[idx] = None if val == '-' else data_list[idx]
+        elif val == '-':
+            data_list[idx] = None
     stats['data'] = data_list
     return stats
