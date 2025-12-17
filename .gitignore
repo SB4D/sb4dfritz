@@ -5,6 +5,7 @@ logs/
 backup/
 pytest.ini
 *_dev*
+*_local*
 *.bat
 # ----------------
 

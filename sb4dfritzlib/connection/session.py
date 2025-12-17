@@ -53,9 +53,11 @@ class FritzBoxSession():
             sleep(minutes * 60)
             self.update_sid()
 
-    def get_ains(self):
+    def get_devices_info(self):
         devices = ahahttp.getdevicelistinfos(self.sid)
+        return devices
+
+    def get_ains(self):
+        devices = self.get_devices_info()
         ains = [dev['identifier'].replace(" ", "") for dev in devices]
         return ains
-    
-
