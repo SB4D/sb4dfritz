@@ -5,6 +5,8 @@ automation devices."""
 from . import tr064
 
 # AHA-HTTP Interface
+from ._login import get_sid
 from . import ahahttp
 from . import session
 from .session import FritzBoxSession
+
