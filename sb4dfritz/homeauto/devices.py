@@ -165,8 +165,9 @@ class HomeAutoDevice:
         while switch_is_on:
             # get the latest power measurement
             data = self.get_timed_power_readout()
+            # debugging: priont data
+            if debug_mode: print(data)
             # add to power_monitor if 'datatime' jumps
-            print(data)
             if data['datatime'] != power_monitor[-1]['datatime']:
                 sleep(sleep_time)
                 power_monitor.append(data)
