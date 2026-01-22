@@ -1,0 +1,1 @@
+from .homeauto import HomeAutoSystem
