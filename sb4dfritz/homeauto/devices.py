@@ -82,6 +82,14 @@ class HomeAutoDevice:
         device_info_tree = ET.fromstring(device_info_xml)
         return device_info_tree.find('switch').find('mode').text
     
+    def set_switch_state(self, state:bool):
+        if not self.features.switchable:
+            return
+        params = {'onoff': 1 if state else 0}
+        response = self._execute_switchcmd(SwitchCmd.setsimpleonoff, params)
+        return bool(int(response.text.strip()))
+        
+
     def switch_on(self):
         if not self.features.switchable:
             return
@@ -155,7 +163,7 @@ class HomeAutoDevice:
         # check if switch is on
         switch_is_on = self.get_switch_state()
         if not switch_is_on:
-            return
+            return False
         # start monitoring power consumption
         # get initial power measurement (and wake up device)
         initial_power = self.get_timed_power_readout()
@@ -187,6 +195,7 @@ class HomeAutoDevice:
                     else:
                         switch_is_on = self.switch_off()
         # return power records for logging (discard first record)
+        return switch_is_on
         return power_monitor[1:]
     
 
