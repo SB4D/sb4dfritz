@@ -1,5 +1,6 @@
 import requests
 from datetime import datetime
+import time
 from time import sleep
 import xml.etree.ElementTree as ET
 
@@ -142,6 +143,7 @@ class HomeAutoDevice:
             power_threshold:float=5,
             network_threshold:float=0.95,
             idle_cycles:int=2,
+            status_updater=None,
             debug_mode:bool=False
             )->None:
         """Monitors the power consumption and waits for the appliances to be 
@@ -160,11 +162,19 @@ class HomeAutoDevice:
         - log_file : path of log file
         - debug_mode : if True, the switch state is not changed
         """
+        def status_update(message:str):
+            if status_updater:
+                status_updater(message)
+            else:
+                pass
         # check if switch is on
         switch_is_on = self.get_switch_state()
         if not switch_is_on:
-            return False
+            status_update(f"{self.name} is off")
+            return switch_is_on
+        status_update(f"Switching off {self.name} when idle... (this may take a while)")
         # start monitoring power consumption
+        status_update(f"Monitoring power consumption of {self.name}:")
         # get initial power measurement (and wake up device)
         initial_power = self.get_timed_power_readout()
         #TODO tweak sleep time if needed
@@ -177,6 +187,7 @@ class HomeAutoDevice:
             if debug_mode: print(data)
             # add to power_monitor if 'datatime' jumps
             if data['datatime'] != power_monitor[-1]['datatime']:
+                status_update(f"  [{data['endtime'].strftime('%X')}]  Current power consumption: {data['power']:0.2f} W")
                 sleep(sleep_time)
                 power_monitor.append(data)
             # check the last measurements for idle status
@@ -190,10 +201,12 @@ class HomeAutoDevice:
                     max(last_power_vals) < power_threshold and \
                     max(last_durations) < network_threshold
                 if appliances_are_idle:
+                    status_update(f"Switching off {self.name}")
                     if debug_mode:
                         switch_is_on = False
                     else:
                         switch_is_on = self.switch_off()
+                    status_update(f"Done: {self.name} was switched off")
         # return power records for logging (discard first record)
         return switch_is_on
         return power_monitor[1:]
