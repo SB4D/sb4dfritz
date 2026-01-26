@@ -1,8 +1,9 @@
-import requests
-from datetime import datetime
-import time
+"""Classes and functions related to home automation devices"""
+
 from time import sleep
+from datetime import datetime
 import xml.etree.ElementTree as ET
+import requests
 
 from ..connection import FritzSession
 from .aha import FunctionBitMask
@@ -13,7 +14,8 @@ from .webui import add_weekly_timer_data
 
 
 class HomeAutoDevice:
-    
+    """Base class for home automation devices"""
+
     def __init__(self):
         self._session:FritzSession = None
         # device name and identifiers
@@ -24,13 +26,15 @@ class HomeAutoDevice:
         self.manufacturer:str = None
         self.productname:str = None
         self.features:FunctionBitMask = None
-    
+
     @property
     def sid(self):
+        """Displays the current session ID"""
         return self._session.sid if self._session else None
-    
+
     @classmethod
-    def from_dict(self, device_info:dict):
+    def from_dict(cls, device_info:dict):
+        """Create a HomeAutoDevice instance from a suitable dictionary"""
         device = HomeAutoDevice()
         # device name and identifiers
         device.name = device_info['name']
@@ -41,7 +45,7 @@ class HomeAutoDevice:
         device.productname = device_info['productname']
         device.features = FunctionBitMask(device_info['functionbitmask'])
         return device
-    
+
     ### AHA-HTTP INTERFACE ###
     def _execute_switchcmd(self, switchcmd:SwitchCmd, params:dict=None) -> requests.Response:
         # make sure a dictionary called 'params' exists
@@ -53,9 +57,11 @@ class HomeAutoDevice:
 
     ## Feature Checks ##
     def is_switchable(self):
+        """Check if the device has an on/off switch"""
         return self.features.switchable
-    
+
     def has_heat_control(self):
+        """Check if the device has a temperature control"""
         return self.features.temp_control
 
     ## Basic Stats ##
@@ -67,7 +73,7 @@ class HomeAutoDevice:
         device_stats_xml = response.text
         device_stats = process_xml_stats(device_stats_xml)
         return device_stats
-    
+
     ## Specific functions: electricity ##
     def get_switch_state(self)->bool:
         """Get current switch state (on=True ,off=False)."""
@@ -76,46 +82,52 @@ class HomeAutoDevice:
         response = self._execute_switchcmd(SwitchCmd.getswitchstate)
         return bool(int(response.text.strip()))
 
-    def get_switch_mode(self):
+    def get_switch_mode(self) -> str:
+        """Get the current autoswitch mode"""
         if not self.is_switchable():
             return
         device_info_xml = self._execute_switchcmd(SwitchCmd.getdeviceinfos).text
         device_info_tree = ET.fromstring(device_info_xml)
         return device_info_tree.find('switch').find('mode').text
-    
-    def set_switch_state(self, state:bool):
+
+    def set_switch_state(self, state:bool) -> bool:
+        """Change the switch state to on (True) or off (False)"""
         if not self.features.switchable:
             return
         params = {'onoff': 1 if state else 0}
         response = self._execute_switchcmd(SwitchCmd.setsimpleonoff, params)
         return bool(int(response.text.strip()))
-        
 
-    def switch_on(self):
+    def switch_on(self) -> bool:
+        """Switch the device on"""
         if not self.features.switchable:
             return
         response = self._execute_switchcmd(SwitchCmd.setswitchon)
         return bool(int(response.text.strip()))
 
-    def switch_off(self):
+    def switch_off(self) -> bool:
+        """Switch the device off"""
         if not self.features.switchable:
             return
         response = self._execute_switchcmd(SwitchCmd.setswitchoff)
         return bool(int(response.text.strip()))
 
-    def get_power(self):
+    def get_power(self) -> int:
+        """Get current power consumption as a multiple of 0.1 W."""
         if not self.features.energy_sensor:
             return
         response = self._execute_switchcmd(SwitchCmd.getswitchpower)
         power = response.text.strip()
         power = int(power)
         return power
-    
-    def get_power_readout(self):
+
+    def get_power_readout(self) -> float:
+        """Get current power consumption in Watts."""
         stats = self.get_basic_device_stats()
         return stats['power']
 
-    def get_timed_power_readout(self):
+    def get_timed_power_readout(self) -> dict:
+        """Returns the current power consumption along with timing information."""
         if not self.features.energy_sensor:
             return
         start = datetime.now()
@@ -124,7 +136,7 @@ class HomeAutoDevice:
         datatime:datetime = power_stats['datatime']
         duration = (end - start).total_seconds()
         latency = (end - datatime).total_seconds()
-        offset = (datatime - start).total_seconds() 
+        offset = (datatime - start).total_seconds()
         power = power_stats['data'][0] / 100
         power_record = {
             'power':power,
@@ -139,7 +151,7 @@ class HomeAutoDevice:
         return power_record
 
     def switch_off_when_idle(
-            self, 
+            self,
             power_threshold:float=5,
             network_threshold:float=0.95,
             idle_cycles:int=2,
@@ -184,10 +196,12 @@ class HomeAutoDevice:
             # get the latest power measurement
             data = self.get_timed_power_readout()
             # debugging: priont data
-            if debug_mode: print(data)
+            if debug_mode:
+                print(data)
             # add to power_monitor if 'datatime' jumps
             if data['datatime'] != power_monitor[-1]['datatime']:
-                status_update(f"  [{data['endtime'].strftime('%X')}]  Current power consumption: {data['power']:0.2f} W")
+                time_string = data['endtime'].strftime('%X')
+                status_update(f" -- Power: {data['power']:0.2f} W | Time: {time_string}")
                 sleep(sleep_time)
                 power_monitor.append(data)
             # check the last measurements for idle status
@@ -196,7 +210,7 @@ class HomeAutoDevice:
                 last_measurements = power_monitor[-idle_cycles:]
                 last_power_vals = [data['power'] for data in last_measurements]
                 last_durations = [data['duration'] for data in last_measurements]
-                last_latencies = [data['latency'] for data in last_measurements]
+                # last_latencies = [data['latency'] for data in last_measurements]
                 appliances_are_idle = \
                     max(last_power_vals) < power_threshold and \
                     max(last_durations) < network_threshold
@@ -209,20 +223,22 @@ class HomeAutoDevice:
                     status_update(f"Done: {self.name} was switched off")
         # return power records for logging (discard first record)
         return switch_is_on
-        return power_monitor[1:]
-    
+        # return power_monitor[1:]
 
-    ## Specific functions: heating ## 
+
+    ## Specific functions: heating ##
 
     def get_temperature(self):
+        """Get the currently measured temperature"""
         if not self.features.temp_sensor:
             return
         # get current temperature
         response = self._execute_switchcmd(SwitchCmd.gettemperature)
         return int(response.text) / 10
 
-    #TODO got bored
+    #TODO review this and improve if needed
     def get_target_temperature(self):
+        """Get the current target temperature"""
         if not self.features.temp_control:
             return
         response = self._execute_switchcmd(SwitchCmd.gethkrtsoll)
@@ -234,6 +250,7 @@ class HomeAutoDevice:
 
     #TODO this is too clunky (too many requests, takes too long)
     def get_temperature_settings(self):
+        """Get the current temperature settings (target, comfort, saving)"""
         if not self.features.temp_control:
             return
         # initialize temperature dictionary
@@ -248,14 +265,15 @@ class HomeAutoDevice:
         response = self._execute_switchcmd(SwitchCmd.gethkrabsenk)
         temperatures['saving'] = int(response.text) / 2
         return temperatures
-    
+
     def set_temperature(self, temp:float|str):
-        # Mit dem „param“ Get-Parameter wird die Solltemperatur übergeben. 
-        # Temperatur-Wert in  0,5 °C, 
-        # Wertebereich: 
-        # - 16 – 56 8 bis 28°C, 16 <= 8°C, 17 = 8,5°C...... 56 >= 28°C 
+        """Set the target temperature"""
+        # Mit dem „param“ Get-Parameter wird die Solltemperatur übergeben.
+        # Temperatur-Wert in  0,5 °C,
+        # Wertebereich:
+        # - 16 – 56 8 bis 28°C, 16 <= 8°C, 17 = 8,5°C...... 56 >= 28°C
         # - 254 = ON , 253 = OFF
-        MODES = ['on', 'off', 'comfort', 'saving']
+        modes = ['on', 'off', 'comfort', 'saving']
         if isinstance(temp, str) and temp.lower() == 'on':
             temp = 254
         elif isinstance(temp, str) and temp.lower() == 'off':
@@ -266,19 +284,19 @@ class HomeAutoDevice:
         else:
             try:
                 temp = int(temp * 2)
-                if not (16 <= temp <= 56):
+                if not 16 <= temp <= 56:
                     raise ValueError("Target temperature must be between 8°C and 28°C")
-            except:
-                raise ValueError("")
+            except Exception as e:
+                raise ValueError(f"Target temperature must be between 8°C and 28°C \
+                                 or in {modes}") from e
         params = {'param': temp}
         response = self._execute_switchcmd(SwitchCmd.sethkrtsoll, params)
         return response
 
 
-    
     ### EXPERIMENTAL: requests to data.lua ###
     def get_web_ui_device_config(self):
-        # get config data from web UI
+        """Get configuration data via web UI"""
         # data = f"xhr=1&sid={self.sid}&lang=de&page=sh_dev&xhrId=all"
         data = WebUITemplate.DevicesConfig
         data['sid'] = self.sid
@@ -290,13 +308,16 @@ class HomeAutoDevice:
                 return device_info
 
     def set_automatic_switching(self, autoswitch:bool, timer_mode:str="weekly"):
-        # check if switch 
+        """Set automatic switching on (True) or off (False)"""
+        # check if switch
         if not self.features.outlet:
-            return 
+            return
         # get timer config
         device_config = self.get_web_ui_device_config()
-        socket_config = [unit for unit in device_config['units'] if unit['type']=='SOCKET'][0]
-        switch_config = [skill for skill in socket_config['skills'] if skill['type']=='SmartHomeSwitch'][0]
+        socket_config = [unit for unit in device_config['units'] \
+                         if unit['type']=='SOCKET'][0]
+        switch_config = [skill for skill in socket_config['skills'] \
+                         if skill['type']=='SmartHomeSwitch'][0]
         timer_config = switch_config['timeControl']['timeSchedules']
         # basic POST request data
         data = {
