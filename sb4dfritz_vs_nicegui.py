@@ -12,28 +12,15 @@ devices_by_category = {
     'Radiators': [device for device in homeauto.devices if device.features.temp_control]
 }
 
-# Build UI
-# def build_main_ui() -> ui.log:
-#     with ui.row():
-#         ui.label("🏠 sb4dfritz Home Automation Control Panel").classes("text-2xl font-bold")
-#     with ui.row():
-#         for cat, devices in devices_by_category.items():
-#             with ui.column():
-#                 ui.label(cat).classes("text-xl font-bold")
-#                 for dev in devices:
-#                     build_device_ui(dev)
-#         with ui.column().classes('w-150'):
-#             ui.label("Log Messages").classes("text-xl font-bold")
-#             log = ui.log(max_lines=15).classes('w-full')
-#     return log
-
-
 class FritzUI:
+    """DRAFT: Ad hoc class wrapper for UI construction and functionality.
+    Eventually, this should be refactored more systematically."""
 
     def __init__(self):
         # build main ui
         with ui.row():
-            ui.label("🏠 sb4dfritz Home Automation Control Panel").classes("text-2xl font-bold")
+            ui.label("🏠 sb4dfritz Home Automation Control Panel") \
+                .classes("text-2xl font-bold")
         with ui.row():
             for cat, devices in devices_by_category.items():
                 with ui.column():
@@ -61,7 +48,8 @@ class FritzUI:
         if device.features.outlet:
             device.ui_elements = {}
             with ui.card().props('flat bordered'):
-                ui.label(text=device.name).classes('w-full text-center font-bold text-[17px]')
+                ui.label(text=device.name) \
+                    .classes('w-full text-center font-bold text-[17px]')
                 # on/off switch
                 device.ui_elements['onoff'] = ui.toggle(
                     options={True:'On', False:'Off'},
@@ -83,7 +71,8 @@ class FritzUI:
         elif device.features.temp_control:
             device.ui_elements = {}
             with ui.card().props('flat bordered').style('width: 250px;'):
-                ui.label(text=device.name).classes('w-full text-center font-bold text-[17px]')
+                ui.label(text=device.name) \
+                    .classes('w-full text-center font-bold text-[17px]')
                 target_temp = device.get_target_temperature()
                 # ui.label(f"Target temperature: {target_temp:0.1f}°C")
                 ui.label("Target temperature:")
@@ -99,11 +88,12 @@ class FritzUI:
                 temp_slider.on(
                     'update:model-value', 
                     lambda d=device: run.io_bound(self.target_temp_handler, temp_slider, d),
-                    throttle=1.0, 
+                    throttle=1.0,
                     leading_events=False)
                 device.ui_elements['temp_slider'] = temp_slider
 
     def onoff_handler(self, e:Event, d:HomeAutoDevice):
+        """handler for on/off switch toggle callback"""
         # temporatily disable control
         ui_control = d.ui_elements['onoff']
         ui_control.disable()
@@ -120,6 +110,7 @@ class FritzUI:
         ui_control.enable()
 
     def autoswitch_handler(self, e:Event, d:HomeAutoDevice):
+        """handler for autoswitch toggle callback"""
         ui_control = d.ui_elements['autoswitch']
         ui_control.disable()
         d.set_automatic_switching(e.value)
@@ -127,11 +118,10 @@ class FritzUI:
         self.status_update(f"{d.name} set to switch mode {d.get_switch_mode()}")
 
     def target_temp_handler(self, e:Event, d:HomeAutoDevice):
-        # ui_control = d.ui_elements['temp_slider']
-        # ui_control.disable()
+        """handler for temperature slider callback"""
         d.set_temperature(e.value)
-        self.status_update(f"{d.name}: target temperature set to {d.get_target_temperature()}")
-        # ui_control.enable()
+        new_temp = d.get_target_temperature()
+        self.status_update(f"{d.name}: target temperature set to {new_temp}")
 
 
 FritzUI()
