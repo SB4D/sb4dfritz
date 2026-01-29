@@ -86,14 +86,21 @@ class FritzUI:
                 ui.label(text=device.name).classes('w-full text-center font-bold text-[17px]')
                 target_temp = device.get_target_temperature()
                 # ui.label(f"Target temperature: {target_temp:0.1f}°C")
-                ui.label("Target temperature")
+                ui.label("Target temperature:")
                 temp_slider = ui.slider(
                     min=8,
                     max=28,
                     step=0.5,
                     value=target_temp,
-                    on_change=lambda e, d=device: run.io_bound(self.target_temp_handler, e, d),
-                ).props('label-always')
+                )
+                # add slider label
+                temp_slider.props('label-always switch-label-side')
+                # temp_slider.props(f':label-value={str(temp_slider.value) + "°C"}')
+                temp_slider.on(
+                    'update:model-value', 
+                    lambda d=device: run.io_bound(self.target_temp_handler, temp_slider, d),
+                    throttle=1.0, 
+                    leading_events=False)
                 device.ui_elements['temp_slider'] = temp_slider
 
     def onoff_handler(self, e:Event, d:HomeAutoDevice):
