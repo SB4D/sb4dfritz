@@ -1,3 +1,5 @@
+"""Utilities for interacting via the web ui"""
+
 from enum import Enum
 
 
@@ -9,6 +11,7 @@ WEB_UI_HEADERS = {
     }
 
 class WebUITemplate:
+    """Templates for web ui request parameters"""
     Headers = {
         "accept": "*/*",
         "accept-language": "en-US,en;q=0.9,de;q=0.8,nl;q=0.7,fr;q=0.6,it;q=0.5",
@@ -34,6 +37,7 @@ class WebUITemplate:
 
 
 class WeekDay(Enum):
+    """Enum class for weekdays"""
     MON = 0
     TUE = 1
     WED = 2
@@ -42,20 +46,22 @@ class WeekDay(Enum):
     SAT = 5
     SUN = 6
 
-    def __init__(self, id):
-        self.id = id
+    def __init__(self, day_id):
+        self.id = day_id
         self.bitmask = 1 << self.id
 
 
 class WeeklyTimerAction:
+    """Class for weekly timer actions"""
 
     def __init__(self, week_day:WeekDay, time_hhmm:str, switch_on:bool):
         self.week_day:WeekDay = week_day
         self.time = time_hhmm
         self.switch_on:bool = switch_on
-    
+
     @classmethod
-    def from_config(self, action_config):
+    def from_config(cls, action_config):
+        """Get user friendly representation of timer action config data"""
         # get week day
         week_day = action_config['timeSetting']['dayOfWeek']
         for day in WeekDay:
@@ -74,7 +80,7 @@ def add_weekly_timer_data(timer_config:dict, data:dict):
     # check for weekly timer settings
     try:
         config_weekly = [timer for timer in timer_config if timer['kind']=='WEEKLY_TIMETABLE'][0]
-    except:
+    except IndexError:
         return
     # start processing weekly timer actions
     timer_actions = [WeeklyTimerAction.from_config(action) for action in config_weekly['actions']]

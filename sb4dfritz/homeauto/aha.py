@@ -1,7 +1,10 @@
+"""Utilities for the AHA-HTTP interface."""
+
 from enum import Enum
 
 
 class SwitchCmd(Enum):
+    """Avalailbe switch commands and their parameters"""
     getswitchlist = {"switchcmd":"getswitchlist", "sid":None}
     setswitchon = {"switchcmd":"setswitchon", "sid":None, "ain":None}
     setswitchoff = {"switchcmd":"setswitchoff", "sid":None, "ain":None}
@@ -41,13 +44,13 @@ class SwitchCmd(Enum):
 
 
 class FunctionBitMask:
-
+    """User friendly representation of function bit mask used by AVM"""
     def __init__(self, functionbitmask:int|str):
         # convert to integer if needed
         try:
             functionbitmask = int(functionbitmask)
-        except:
-            ValueError("Argument must be integer or convertible using int(...)")
+        except Exception as e:
+            raise ValueError("Argument must be integer or convertible using int(...)") from e
         # convert to bit string (big endian)
         bits = format(functionbitmask, '024b')[::-1]
         # converts to list of booleans
