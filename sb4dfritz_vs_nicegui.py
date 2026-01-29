@@ -73,8 +73,8 @@ class FritzUI:
             with ui.card().props('flat bordered').style('width: 250px;'):
                 ui.label(text=device.name) \
                     .classes('w-full text-center font-bold text-[17px]')
+                # --- Target Temperature Slider --- 
                 target_temp = device.get_target_temperature()
-                # ui.label(f"Target temperature: {target_temp:0.1f}°C")
                 ui.label("Target temperature:")
                 temp_slider = ui.slider(
                     min=8,
@@ -82,15 +82,27 @@ class FritzUI:
                     step=0.5,
                     value=target_temp,
                 )
-                # add slider label
-                temp_slider.props('label-always switch-label-side')
-                # temp_slider.props(f':label-value={str(temp_slider.value) + "°C"}')
                 temp_slider.on(
                     'update:model-value', 
                     lambda d=device: run.io_bound(self.target_temp_handler, temp_slider, d),
                     throttle=1.0,
                     leading_events=False)
+                temp_slider.props('label-always switch-label-side') # add slider label
+                # temp_slider.props(f':label-value={str(temp_slider.value) + "°C"}')
                 device.ui_elements['temp_slider'] = temp_slider
+                # --- Comfort and Saving Mode Buttons ---
+                with ui.button_group():
+                    comfort_temp = ui.button(
+                        'Comfort',
+                        on_click=lambda d=device: run.io_bound(self.comfort_temp_handler, d)
+                    ).props('color="teal-14"')
+                    saving_temp = ui.button(
+                        'Saving',
+                        on_click=lambda d=device: run.io_bound(self.saving_temp_handler, d)
+                    ).props('color="blue-grey-6"')
+                device.ui_elements['comfort_button'] = comfort_temp
+                device.ui_elements['saving_button'] = saving_temp
+                
 
     def onoff_handler(self, e:Event, d:HomeAutoDevice):
         """handler for on/off switch toggle callback"""
@@ -121,6 +133,20 @@ class FritzUI:
         """handler for temperature slider callback"""
         d.set_temperature(e.value)
         new_temp = d.get_target_temperature()
+        self.status_update(f"{d.name}: target temperature set to {new_temp}")
+
+    def comfort_temp_handler(self, d:HomeAutoDevice):
+        """handler for comfort temperature button callback"""
+        d.set_temperature('comfort')
+        new_temp = d.get_target_temperature()
+        d.ui_elements['temp_slider'].set_value(new_temp)
+        self.status_update(f"{d.name}: target temperature set to {new_temp}")
+
+    def saving_temp_handler(self, d:HomeAutoDevice):
+        """handler for saving temperature button callback"""
+        d.set_temperature('saving')
+        new_temp = d.get_target_temperature()
+        d.ui_elements['temp_slider'].set_value(new_temp)
         self.status_update(f"{d.name}: target temperature set to {new_temp}")
 
 

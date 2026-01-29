@@ -267,7 +267,11 @@ class HomeAutoDevice:
         return temperatures
 
     def set_temperature(self, temp:float|str):
-        """Set the target temperature"""
+        """Set the target temperature.
+        
+        - Allowed floats: values between 8 and 28
+        - Allowed strings: 'comfort', 'saving', 'on', 'off'
+        """
         # Mit dem „param“ Get-Parameter wird die Solltemperatur übergeben.
         # Temperatur-Wert in  0,5 °C,
         # Wertebereich:
